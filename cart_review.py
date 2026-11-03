@@ -16,8 +16,8 @@ def review(week,version,grocery_id,action,product=None,quantity=None):
         if action in ('pantry','skip'):
             excluded.append({'grocery_id':grocery_id,'reason':action});cart['matches']=[m for m in cart['matches'] if m['grocery_id']!=grocery_id]
         elif action=='match':
-            if not product or product.get('unavailable') or not product.get('name') or type(quantity) is not int or not 0<quantity<=100:raise ValueError('Choisissez un produit disponible et un nombre de paquets valide.')
+            if not product or product.get('unavailable') or product.get('stock')=='NO_STOCK' or not product.get('name') or type(quantity) is not int or not 0<quantity<=100:raise ValueError('Choisissez un produit disponible et un nombre de paquets valide.')
             cart['matches']=[m for m in cart['matches'] if m['grocery_id']!=grocery_id]+[{**product,'grocery_id':grocery_id,'quantity':quantity,'note':'Produit et nombre de paquets choisis dans Table.'}]
         elif action!='restore':raise ValueError('Décision inconnue.')
-        cart['excluded']=excluded;cart['unmatched']=missing(w);cart['status']='proposed'
+        cart['excluded']=excluded;cart['unmatched']=missing(w);cart['status']='proposed';cart.pop('fill_job_id',None)
         return D.put(c,'week',week,w,version)

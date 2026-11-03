@@ -22,6 +22,14 @@ class CartReview(unittest.TestCase):
  def test_manual_match_preserves_other_items_and_exact_packs(self):
   product={'productId':'456','name':'Orge perlé','image_url':'https://static1.chronodrive.com/img/PM/P/orge.gif','price':2.5}
   w=C.review(self.week,self.w['version'],self.ids[1],'match',product,2);self.assertEqual(len(w['cart']['matches']),2);self.assertEqual(w['cart']['matches'][1]['quantity'],2);self.assertNotIn(self.ids[1],C.missing(w));self.assertIn(self.ids[2],C.missing(w))
+ def test_replacement_after_partial_fill_requires_new_approval(self):
+  with D.db() as c:
+   w=D.get(c,'week',self.week);w['cart']['status']='review';w['cart']['fill_job_id']='old-partial-job';w=D.put(c,'week',self.week,w)
+  replacement={'productId':'789','name':'Remplacement','price':4}
+  w=C.review(self.week,w['version'],self.ids[0],'match',replacement,1);self.assertEqual(w['cart']['status'],'proposed');self.assertNotIn('fill_job_id',w['cart']);self.assertEqual(w['cart']['matches'][0]['productId'],'789');self.assertTrue(w['groceries']['approved'])
+ def test_out_of_stock_replacement_is_rejected(self):
+  with self.assertRaises(ValueError):C.review(self.week,self.w['version'],self.ids[1],'match',{'productId':'456','name':'Orge','stock':'NO_STOCK'},1)
+  self.assertEqual(D.load_week(self.week),self.w)
  def test_invalid_match_or_inflight_change_is_rejected(self):
   with self.assertRaises(ValueError):C.review(self.week,self.w['version'],self.ids[1],'match',{'productId':'456','name':'Orge'},0)
   with D.db() as c:self.w['cart']['status']='filling';self.w=D.put(c,'week',self.week,self.w)
