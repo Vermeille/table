@@ -8,6 +8,7 @@ import httpx
 from cryptography.fernet import Fernet
 import domain as D
 import cart_review
+import cart_fill
 from french import error as french_error
 ROOT=Path(__file__).parent;LOG=logging.getLogger('table');TOKENS={};SESSIONS={};PROVISION_LOCK=asyncio.Lock()
 PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
@@ -20,7 +21,7 @@ HELP={
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',
  'search_products':'cart: {query}: real Chronodrive search', 'get_cart':'cart: {}',
  'propose_cart':'cart: {week,version,matches:[{grocery_id,productId,name,brand,size,quantity,price,note}]}',
- 'cart_add':'cart: {week,version,productId,quantity}: requires owner-approved matching product and active fill',
+ 'fill_status':'cart: {week}: read the durable app-managed cart fill; the owner starts or resumes it in the UI',
  'learn':'{text,version}: replace learned skill guidance after merging current explicit preferences'}
 def encrypted_read(name):
     p=D.DATA/(name+'.enc')
@@ -63,10 +64,6 @@ async def poll():
                 remote=await hermes(r['role'],'GET','/v1/runs/'+r['remote']);output=remote.get('output','');status=remote.get('status','running')
                 if not isinstance(output,str):output=json.dumps(output)
                 with D.db() as c:c.execute('UPDATE runs SET status=?,output=?,error=? WHERE id=?',(status,output,str(remote.get('error') or ''),r['id']))
-                if r['role']=='cart' and status in ('completed','failed','cancelled','interrupted'):
-                    with D.db() as c:
-                        w=D.get(c,'week',r['week'])
-                        if w and w.get('cart') and w['cart'].get('status')=='filling':w['cart']['status']='review';D.put(c,'week',r['week'],w)
             except HTTPException:pass
             except Exception:LOG.exception('Run polling')
         await asyncio.sleep(2)
@@ -87,8 +84,8 @@ async def lifespan(app):
         await wait_profiles()
         app.state.provision_error=None
     except Exception as e:app.state.provision_error=french_error(str(getattr(e,'detail',e)));LOG.warning('Setup needed: %s',app.state.provision_error)
-    task=asyncio.create_task(poll());yield;task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):await task
+    task=asyncio.create_task(poll());fill_task=asyncio.create_task(cart_fill.loop(chrono,cart_identity));yield;task.cancel();fill_task.cancel()
+    await asyncio.gather(task,fill_task,return_exceptions=True)
 app=FastAPI(lifespan=lifespan)
 @app.middleware('http')
 async def auth(request,call_next):
@@ -119,8 +116,11 @@ def logout(req:Request):
 @app.get('/api/state')
 def state(week:str=''):
     today=date.today();week=week or (today-timedelta(days=today.weekday())).isoformat()
-    with D.db() as c:runs=[dict(r) for r in c.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 60')]
-    return {'recipes':D.recipes(),'week':D.load_week(week),'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'setup_error':getattr(app.state,'provision_error',None)}
+    with D.db() as c:
+        runs=[dict(r) for r in c.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 60')]
+        current=D.get(c,'week',D.week_id(week)) or D.blank_week(week)
+        fill=D.get(c,'fill',(current.get('cart') or {}).get('fill_job_id',''))
+    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'setup_error':getattr(app.state,'provision_error',None)}
 @app.post('/api/recipes')
 async def recipe_save(req:Request):return D.save_recipe(await req.json())
 @app.get('/api/recipes/{id}/markdown')
@@ -151,16 +151,15 @@ async def workflow(week,action,req:Request):
             if any(not m.get('productId') for m in w['cart']['matches']):raise ValueError('Every proposed product needs an ID.')
             if w['cart'].get('status')!='proposed':raise ValueError('This cart is not awaiting approval.')
             w['cart']['status']='approved';return D.put(c,'week',week,w,v)
-    if action=='fill-cart':
+    if action in ('fill-cart','resume-fill'):
+        return cart_fill.start(week,v,cart_identity(),resume=action=='resume-fill')
+    if action=='pause-fill':return cart_fill.pause(week,v)
+    if action=='reopen-cart':
         with D.db() as c:
             w=D.get(c,'week',week)
-            if not w or w['version']!=v or not (w.get('groceries') or {}).get('approved') or not (w.get('cart') or {}).get('status')=='approved':raise ValueError('Approve the exact products before filling the cart.')
-            w['cart']['status']='filling';w=D.put(c,'week',week,w,v)
-        try:return await submit('cart',week,f'Fill the approved Chronodrive cart for week {week}. Read context, then get_cart. Use cart_add only for the approved matches at week version {w["version"]}. Do not repeat an unknown operation. Report results and shortages.')
-        except Exception:
-            with D.db() as c:
-                w=D.get(c,'week',week);w['cart']['status']='review';D.put(c,'week',week,w)
-            raise
+            if not w:raise ValueError('Panier introuvable.')
+            D.editable(w);w['cart']['status']='proposed';w['cart'].pop('fill_job_id',None)
+            return D.put(c,'week',week,w,v)
     if action=='reconcile-cart':
         with D.db() as c:
             w=D.get(c,'week',week)
@@ -224,6 +223,7 @@ async def chronodrive_test():
     items=await chrono('cart');return {'connected':True,'items':items}
 @app.post('/api/chronodrive')
 async def chronodrive_setup(req:Request):
+    if any(j['status'] in cart_fill.ACTIVE for j in cart_fill.jobs()):raise ValueError('Mettez le remplissage en pause avant de changer de compte ou de magasin.')
     p=await req.json();old=encrypted_read('chronodrive') or {}
     for k in ('email','password','store_id'):
         if p.get(k):old[k]=p[k]
@@ -236,11 +236,17 @@ async def chronodrive_setup(req:Request):
     cache=D.DATA/'chronodrive'/'session.json'
     if cache.exists():cache.unlink()
     return {'saved':True}
+def cart_identity():
+    import hashlib
+    cred=encrypted_read('chronodrive') or {}
+    return hashlib.sha256(json.dumps({'email':cred.get('email'),'store_id':cred.get('store_id')},sort_keys=True).encode()).hexdigest()
 async def chrono(action,data=None):
     cred=encrypted_read('chronodrive')
     if not cred:raise ValueError('Connect Chronodrive in Settings first.')
     proc=await asyncio.create_subprocess_exec(sys.executable,str(ROOT/'chronodrive_worker.py'),stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)
     try:out,_=await asyncio.wait_for(proc.communicate(json.dumps({'credentials':cred,'session_file':str(D.DATA/'chronodrive'/'session.json'),'action':action,'data':data or {}}).encode()),85)
+    except asyncio.CancelledError:
+        proc.terminate();await proc.wait();raise
     except asyncio.TimeoutError:proc.kill();await proc.wait();raise ValueError('Chronodrive timed out. Check the cart before retrying any changes.')
     try:r=json.loads(out)
     except Exception:raise ValueError('Chronodrive client failed. No automatic retry was made.')
@@ -284,7 +290,7 @@ async def worker(action,req:Request):
     token=req.headers.get('Authorization','').removeprefix('Bearer ');role=next((r for r,t in TOKENS.items() if hmac.compare_digest(token,t)),None)
     if not role:raise HTTPException(401,'Invalid worker credential')
     p=await req.json()
-    allowed={'cookbook':{'save_recipe'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add'}}
+    allowed={'cookbook':{'save_recipe'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
     common={'help','context','get_recipe','search_recipes','learn'}
     if action not in common|allowed[role]:raise HTTPException(403,'This assistant cannot perform that action')
     if action=='help':return {k:v for k,v in HELP.items() if k in common|allowed[role]}
@@ -302,6 +308,7 @@ async def worker(action,req:Request):
         result=D.learn(role,p['text'],p['version']);await provision(role);return result
     if action=='search_products':return await chrono('search',p)
     if action=='get_cart':return await chrono('cart')
+    if action=='fill_status':return cart_fill.job_for(D.load_week(p['week']))
     if action=='propose_cart':return propose_cart(p)
     if action=='cart_add':return await cart_add(p)
 def propose_cart(p):
@@ -319,6 +326,7 @@ async def cart_add(p):
         w=D.get(c,'week',p['week'])
         if not w or w['version']!=p['version'] or not (w.get('groceries') or {}).get('approved') or (w.get('cart') or {}).get('status')!='filling':raise ValueError('No active owner-approved cart fill for this version.')
         if c.execute("SELECT 1 FROM operations WHERE week=? AND status='unknown'",(p['week'],)).fetchone():raise ValueError('A previous cart operation needs reconciliation. Inspect Chronodrive before continuing.')
+        if w['cart'].get('fill_job_id'):raise ValueError('Le remplissage est géré par Table. Consultez sa progression ; ne lancez pas des ajouts individuels.')
         matches=[m for m in w['cart']['matches'] if m['productId']==p['productId']]
         qty=sum(m['quantity'] for m in matches)
         if not matches or p['quantity']!=qty:raise ValueError('Product or quantity does not match the approved cart.')

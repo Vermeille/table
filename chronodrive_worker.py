@@ -23,6 +23,7 @@ try:
             except Exception:return {'productId':id,'image_url':None,'unavailable':True}
         with ThreadPoolExecutor(max_workers=6) as pool:result=list(pool.map(detail,ids))
     elif a=='cart':result=c.get_cart(session)
+    elif a=='set_quantity':result=c.set_item_quantity(d['productId'],d['quantity'],session)
     elif a=='add':result={'added':c.add_item_to_cart(d['productId'],d['quantity'],session)}
     else:raise ValueError('Unsupported action')
     print(json.dumps({'ok':True,'result':result},ensure_ascii=False))

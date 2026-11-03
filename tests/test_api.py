@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 class API(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
-  cls.proj=patch.object(s,'provision',new=AsyncMock());cls.proj.start();cls.ready=patch.object(s,'wait_profiles',new=AsyncMock());cls.ready.start();cls.client=TestClient(s.app);cls.client.__enter__();cls.client.post('/api/login',json={'password':'test-password'})
+  cls.queue=patch.object(s.cart_fill,'loop',new=AsyncMock());cls.queue.start();cls.proj=patch.object(s,'provision',new=AsyncMock());cls.proj.start();cls.ready=patch.object(s,'wait_profiles',new=AsyncMock());cls.ready.start();cls.client=TestClient(s.app);cls.client.__enter__();cls.client.post('/api/login',json={'password':'test-password'})
  @classmethod
- def tearDownClass(cls):cls.client.__exit__(None,None,None);cls.proj.stop();cls.ready.stop()
+ def tearDownClass(cls):cls.client.__exit__(None,None,None);cls.proj.stop();cls.ready.stop();cls.queue.stop()
  def worker(self,role,action,data):return self.client.post('/api/worker/'+action,json=data,headers={'Authorization':'Bearer '+s.TOKENS[role]})
  def test_role_restrictions_and_auth(self):
   self.assertEqual(self.client.post('/api/worker/context',json={}).status_code,401)

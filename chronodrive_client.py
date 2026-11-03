@@ -219,3 +219,17 @@ def product_details(id,session):
     r=requests.get('https://api.chronodrive.com/v1/products/'+product_id(id),headers=_session_headers(session,API_KEY_SEARCH),timeout=15)
     r.raise_for_status()
     return r.json()
+
+
+def set_item_quantity(product_id,quantity,session):
+    # The website calls this endpoint `cart.set`: quantity is the target total,
+    # not an increment. Never decrement quantities as part of a fill job.
+    from chronodrive_products import product_id as validate
+    payload={'content':[{'clientOrigin':'WEB|SEARCH|TG|/promotions','productId':validate(product_id),'quantity':quantity}],'optimizedMode':True}
+    r=requests.post(f"https://api.chronodrive.com/v1/carts/{session['cart_id']}/items",json=payload,headers=_session_headers(session,API_KEY_CART_ADD),timeout=15)
+    if r.status_code in (400,401,403,404,409,422,429):
+        return {'added':False,'return_type':'HTTP_'+str(r.status_code),'retry_later':r.status_code in (401,403,429),'message':'Chronodrive a refusé la modification (HTTP '+str(r.status_code)+').'}
+    r.raise_for_status();content=r.json().get('content') or []
+    if not content:raise ValueError('Chronodrive n’a pas confirmé la modification.')
+    item=content[0];code=str(item.get('returnType','UNKNOWN'))
+    return {'added':code=='SUCCESS','return_type':code,'message':'' if code=='SUCCESS' else 'Chronodrive a refusé cet article : '+code}
