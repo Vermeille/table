@@ -42,6 +42,17 @@ async def hermes(role,method,path,data=None,headers=None):
         if not r.is_success:raise HTTPException(502,f'Hermes returned HTTP {r.status_code}.')
         return r.json()
     except httpx.HTTPError:raise HTTPException(503,'Cannot reach Hermes. Check the connection settings.')
+async def wait_profiles(timeout=60):
+    # A fresh gateway discovers newly created profiles asynchronously. Do not
+    # expose a ready installer while /p/<profile> still returns 404.
+    pending=set(D.ROLES);deadline=time.monotonic()+timeout
+    while pending:
+        roles=sorted(pending)
+        results=await asyncio.gather(*(hermes(role,'GET','/api/sessions?limit=1') for role in roles),return_exceptions=True)
+        pending={role for role,result in zip(roles,results) if isinstance(result,Exception)}
+        if not pending:return
+        if time.monotonic()>=deadline:raise HTTPException(503,'Hermes has not made all Table profiles available yet. Check the gateway and reinstall profiles from Connections.')
+        await asyncio.sleep(1)
 async def poll():
     while True:
         with D.db() as c:runs=[dict(r) for r in c.execute("SELECT * FROM runs WHERE status IN ('running','queued','waiting_for_approval')")]
@@ -69,6 +80,7 @@ async def lifespan(app):
         for recipe in json.loads((ROOT/'seed.json').read_text()):D.save_recipe(recipe)
     try:
         for role in D.ROLES:await provision(role)
+        await wait_profiles()
         app.state.provision_error=None
     except Exception as e:app.state.provision_error=str(getattr(e,'detail',e));LOG.warning('Setup needed: %s',app.state.provision_error)
     task=asyncio.create_task(poll());yield;task.cancel()
@@ -167,6 +179,7 @@ async def setup(req:Request):
         if p.get(k):cfg[{'hermes_url':'url','app_url':'app_url','gateway_key':'api_key'}[k]]=p[k]
     encrypted_write('connection',cfg)
     for role in D.ROLES:await provision(role)
+    await wait_profiles()
     app.state.provision_error=None;return {'installed':True}
 @app.post('/api/codex/start')
 async def codex_start():

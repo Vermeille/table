@@ -4,7 +4,7 @@ services:
     image: table:0.1.0
     pull_policy: never
     restart: unless-stopped
-    user: '1000:1000'
+    user: '${HERMES_UID:-10000}:${HERMES_GID:-10000}'
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
     environment:
@@ -18,7 +18,6 @@ services:
       SERVICE_FQDN_TABLE_8080: ${SERVICE_FQDN_TABLE_8080}
     volumes:
       - hermes-data:/opt/data
-      - hermes-source:/opt/hermes:ro
       - table-data:/table-data
     networks: [hermes]
     healthcheck:
@@ -30,7 +29,7 @@ services:
     image: table:0.1.0
     pull_policy: never
     restart: unless-stopped
-    user: '1000:1000'
+    user: '${HERMES_UID:-10000}:${HERMES_GID:-10000}'
     network_mode: container:${HERMES_CONTAINER}
     entrypoint: ['/opt/hermes/.venv/bin/python', '/app/owner_bridge.py']
     cap_drop: [ALL]
@@ -40,7 +39,6 @@ services:
       BRIDGE_PORT: '8644'
     volumes:
       - hermes-data:/opt/data
-      - hermes-source:/opt/hermes:ro
     healthcheck:
       test: ['CMD', '/opt/hermes/.venv/bin/python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8644/health',timeout=5)"]
       interval: 15s
@@ -50,9 +48,6 @@ volumes:
   hermes-data:
     external: true
     name: ${HERMES_DATA_VOLUME}
-  hermes-source:
-    external: true
-    name: ${HERMES_SOURCE_VOLUME}
   table-data:
     external: true
     name: ${TABLE_DATA_VOLUME:-table-data}

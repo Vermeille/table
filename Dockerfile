@@ -3,8 +3,8 @@ LABEL org.opencontainers.image.title="Table" org.opencontainers.image.version="0
 USER root
 WORKDIR /app
 COPY . /app
-RUN mkdir -p /table-data && chown 1000:1000 /table-data
+RUN mkdir -p /table-data && chown 10000:10000 /table-data
 ENV PYTHONPATH=/opt/hermes HERMES_HOME=/opt/data TABLE_DATA=/table-data
-USER 1000:1000
+USER 10000:10000
 EXPOSE 8080
 ENTRYPOINT ["/opt/hermes/.venv/bin/python","-m","uvicorn","server:app","--host","0.0.0.0","--port","8080","--proxy-headers","--forwarded-allow-ips","*"]
