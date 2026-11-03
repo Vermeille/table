@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import httpx
 from cryptography.fernet import Fernet
 import domain as D
+import cart_review
 from french import error as french_error
 ROOT=Path(__file__).parent;LOG=logging.getLogger('table');TOKENS={};SESSIONS={};PROVISION_LOCK=asyncio.Lock()
 PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
@@ -129,6 +130,13 @@ def markdown(id:str):
     return FileResponse(p,media_type='text/markdown',filename=id+'.md')
 @app.post('/api/week/{week}/save')
 async def save_week(week,req:Request):return D.update_week(week,await req.json())
+@app.post('/api/week/{week}/cart-item')
+async def cart_item(week,req:Request):
+    p=await req.json();product=None
+    if p['action']=='match':
+        from chronodrive_products import product_id
+        id=product_id(p['productId']);items=await chrono('products',{'ids':[id]});product=next((x for x in items if x['productId']==id),None)
+    return cart_review.review(week,p['version'],p['grocery_id'],p['action'],product,p.get('quantity'))
 @app.post('/api/week/{week}/{action}')
 async def workflow(week,action,req:Request):
     p=await req.json();v=p['version']
@@ -139,7 +147,7 @@ async def workflow(week,action,req:Request):
         with D.db() as c:
             w=D.get(c,'week',week)
             if not w or not (w.get('groceries') or {}).get('approved') or not (w.get('cart') or {}).get('matches'):raise ValueError('Review proposed products first.')
-            if w['cart'].get('unmatched'):raise ValueError('Match every grocery item before approving products.')
+            if cart_review.missing(w):raise ValueError('Choisissez un produit ou une décision explicite pour chaque ingrédient restant avant de valider.')
             if any(not m.get('productId') for m in w['cart']['matches']):raise ValueError('Every proposed product needs an ID.')
             if w['cart'].get('status')!='proposed':raise ValueError('This cart is not awaiting approval.')
             w['cart']['status']='approved';return D.put(c,'week',week,w,v)
@@ -197,6 +205,16 @@ async def codex_status(id):
         s=_oauth_sessions.get(id)
         if not s:raise HTTPException(404,'Sign-in expired. Start again.')
         return {'status':s.get('status'),'error':s.get('error_message')}
+@app.get('/api/chronodrive/search')
+async def search_chronodrive(query:str):
+    if not query.strip() or len(query)>200:raise ValueError('Saisissez un produit à rechercher.')
+    return await chrono('search',{'query':query.strip()})
+@app.post('/api/chronodrive/products')
+async def chronodrive_products(req:Request):
+    from chronodrive_products import product_id
+    ids=(await req.json()).get('ids',[])
+    if not isinstance(ids,list) or len(ids)>60:raise ValueError('Demandez au maximum 60 produits.')
+    return await chrono('products',{'ids':[product_id(x) for x in ids]})
 @app.get('/api/chronodrive/stores')
 async def chronodrive_stores():
     from chronodrive_stores import stores
@@ -290,11 +308,11 @@ def propose_cart(p):
     with D.db() as c:
         w=D.get(c,'week',p['week'])
         if not w or not (w.get('groceries') or {}).get('approved'):raise ValueError('Approve groceries before choosing products.')
-        D.editable(w);items={i['id'] for i in w['groceries']['items'] if not i.get('checked')};covered=set()
+        D.editable(w);excluded=(w.get('cart') or {}).get('excluded',[]);excluded_ids={x['grocery_id'] for x in excluded};items=set(cart_review.required(w))-excluded_ids;covered=set()
         for m in p['matches']:
             if m.get('grocery_id') not in items or not m.get('productId') or type(m.get('quantity')) is not int or not 0<m['quantity']<=100:raise ValueError('Invalid product match or pack quantity.')
             covered.add(m['grocery_id'])
-        w['cart']={'matches':p['matches'],'unmatched':sorted(items-covered),'status':'proposed'};return D.put(c,'week',p['week'],w,p['version'])
+        w['cart']={'matches':p['matches'],'unmatched':sorted(items-covered),'excluded':excluded,'status':'proposed'};return D.put(c,'week',p['week'],w,p['version'])
 async def cart_add(p):
     # Reserve before dispatch. Unknown outcomes are never replayed automatically.
     with D.db() as c:

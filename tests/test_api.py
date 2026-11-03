@@ -49,6 +49,17 @@ class API(unittest.TestCase):
    self.assertEqual(self.worker('cart','cart_add',{'week':week,'version':w['version'],'productId':'already-there','quantity':1}).status_code,409)
    chrono.assert_awaited_once_with('cart')
   with D.db() as c:self.assertEqual(c.execute('SELECT count(*) FROM operations WHERE week=?',(week,)).fetchone()[0],0)
+ def test_owner_resolves_missing_items_and_then_approves(self):
+  week='2027-01-04';r=D.recipes()[0];w=D.update_week(week,{'version':0,'slots':[{'day':0,'meal':'dinner','recipe_id':r['id'],'servings':2}]});w=D.approve_week(week,w['version']);w=D.groceries(week,w['version']);w=D.approve_groceries(week,w['version']);items=w['groceries']['items'];self.assertGreater(len(items),2)
+  matches=[{'grocery_id':i['id'],'productId':'item-'+str(n),'name':i['name'],'quantity':1} for n,i in enumerate(items[:-2])]
+  w=self.worker('cart','propose_cart',{'week':week,'version':w['version'],'matches':matches,'excluded':[{'grocery_id':i['id'],'reason':'skip'} for i in items[-2:]]}).json();self.assertEqual(len(w['cart']['unmatched']),2)
+  self.assertEqual(self.client.post('/api/week/'+week+'/approve-cart',json={'version':w['version']}).status_code,409)
+  denied=self.client.post('/api/week/'+week+'/cart-item',json={'version':w['version'],'grocery_id':items[-1]['id'],'action':'skip'},headers={'Cookie':'','Authorization':'Bearer '+s.TOKENS['cart']});self.assertEqual(denied.status_code,401)
+  for item,action in zip(items[-2:],('pantry','skip')):
+   response=self.client.post('/api/week/'+week+'/cart-item',json={'version':w['version'],'grocery_id':item['id'],'action':action});self.assertEqual(response.status_code,200);w=response.json()
+  self.assertEqual(w['cart']['unmatched'],[]);self.assertEqual(w['cart']['matches'],matches);self.assertEqual(len(w['cart']['excluded']),2)
+  w=self.client.post('/api/week/'+week+'/approve-cart',json={'version':w['version']}).json();self.assertEqual(w['cart']['status'],'approved')
+  w=self.client.post('/api/week/'+week+'/cart-item',json={'version':w['version'],'grocery_id':items[-1]['id'],'action':'restore'}).json();self.assertEqual(w['cart']['status'],'proposed');self.assertIn(items[-1]['id'],w['cart']['unmatched'])
  def test_provider_and_retailer_secrets_not_returned(self):
   s.encrypted_write('model',{'provider':'openai','model':'test','api_key':'never-return-key','base_url':''});s.encrypted_write('chronodrive',{'email':'a@b.test','password':'never-return-password','store_id':'1'});raw=self.client.get('/api/settings').text;self.assertNotIn('never-return',raw)
 if __name__=='__main__':unittest.main()

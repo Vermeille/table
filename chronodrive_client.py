@@ -212,3 +212,10 @@ def get_cart(session: dict) -> list[dict]:
             "quantity":  item.get("quantity", 1),
         })
     return result
+
+
+def product_details(id,session):
+    from chronodrive_products import product_id
+    r=requests.get('https://api.chronodrive.com/v1/products/'+product_id(id),headers=_session_headers(session,API_KEY_SEARCH),timeout=15)
+    r.raise_for_status()
+    return r.json()
