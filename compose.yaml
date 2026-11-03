@@ -1,0 +1,62 @@
+# Attach to any compatible Hermes v0.22.5 gateway; see README for fresh installation.
+services:
+  table:
+    image: table:0.1.0
+    pull_policy: never
+    restart: unless-stopped
+    user: '1000:1000'
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    environment:
+      HERMES_URL: ${HERMES_URL:-http://hermes-agent:8642}
+      HERMES_HOME: /opt/data
+      TABLE_DATA: /table-data
+      TABLE_INTERNAL_URL: ${TABLE_INTERNAL_URL:-http://table:8080}
+      API_SERVER_KEY: ${API_SERVER_KEY}
+      TABLE_PASSWORD: ${TABLE_PASSWORD}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      SERVICE_FQDN_TABLE_8080: ${SERVICE_FQDN_TABLE_8080}
+    volumes:
+      - hermes-data:/opt/data
+      - hermes-source:/opt/hermes:ro
+      - table-data:/table-data
+    networks: [hermes]
+    healthcheck:
+      test: ['CMD', '/opt/hermes/.venv/bin/python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health',timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+  table-bridge:
+    image: table:0.1.0
+    pull_policy: never
+    restart: unless-stopped
+    user: '1000:1000'
+    network_mode: container:${HERMES_CONTAINER}
+    entrypoint: ['/opt/hermes/.venv/bin/python', '/app/owner_bridge.py']
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    environment:
+      API_SERVER_KEY: ${API_SERVER_KEY}
+      BRIDGE_PORT: '8644'
+    volumes:
+      - hermes-data:/opt/data
+      - hermes-source:/opt/hermes:ro
+    healthcheck:
+      test: ['CMD', '/opt/hermes/.venv/bin/python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8644/health',timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+volumes:
+  hermes-data:
+    external: true
+    name: ${HERMES_DATA_VOLUME}
+  hermes-source:
+    external: true
+    name: ${HERMES_SOURCE_VOLUME}
+  table-data:
+    external: true
+    name: ${TABLE_DATA_VOLUME:-table-data}
+networks:
+  hermes:
+    external: true
+    name: ${HERMES_NETWORK}

@@ -1,0 +1,527 @@
+[
+  {
+    "id": "margherita-pizza",
+    "version": 0,
+    "title": "Margherita pizza",
+    "tags": [
+      "Italian",
+      "vegetarian",
+      "weekend"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 250,
+        "unit": "g",
+        "name": "pizza dough"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "tomato passata"
+      },
+      {
+        "quantity": 125,
+        "unit": "g",
+        "name": "mozzarella"
+      },
+      {
+        "quantity": 10,
+        "unit": "g",
+        "name": "fresh basil"
+      },
+      {
+        "quantity": 10,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 590,
+      "protein_g": 23,
+      "carbs_g": 72,
+      "fat_g": 22
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Heat the oven to its highest setting with a baking tray inside.\n2. Stretch the dough onto baking paper. Spread with passata and torn mozzarella.\n3. Bake on the hot tray for 10–15 minutes until the base is crisp and the cheese bubbles.\n4. Finish with basil and olive oil."
+  },
+  {
+    "id": "lemon-chickpea-bowl",
+    "version": 0,
+    "title": "Lemon & chickpea bowls",
+    "tags": [
+      "vegetarian",
+      "quick",
+      "Mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "cooked chickpeas"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "couscous"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "cucumber"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "tomatoes"
+      },
+      {
+        "quantity": 1,
+        "unit": "unit",
+        "name": "lemon"
+      },
+      {
+        "quantity": 20,
+        "unit": "ml",
+        "name": "olive oil"
+      },
+      {
+        "quantity": 50,
+        "unit": "g",
+        "name": "feta"
+      }
+    ],
+    "nutrition": {
+      "kcal": 620,
+      "protein_g": 24,
+      "carbs_g": 78,
+      "fat_g": 22
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Cover couscous with boiling water following pack instructions. Rest covered, then fluff.\n2. Dice cucumber and tomatoes. Drain and rinse chickpeas.\n3. Mix lemon juice and olive oil. Toss everything together and crumble over feta."
+  },
+  {
+    "id": "roast-salmon-potatoes",
+    "version": 0,
+    "title": "Roast salmon & new potatoes",
+    "tags": [
+      "fish",
+      "oven",
+      "simple"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 300,
+        "unit": "g",
+        "name": "salmon fillet"
+      },
+      {
+        "quantity": 500,
+        "unit": "g",
+        "name": "potatoes"
+      },
+      {
+        "quantity": 300,
+        "unit": "g",
+        "name": "broccoli"
+      },
+      {
+        "quantity": 1,
+        "unit": "unit",
+        "name": "lemon"
+      },
+      {
+        "quantity": 15,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 650,
+      "protein_g": 40,
+      "carbs_g": 48,
+      "fat_g": 30
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Heat oven to 210°C. Halve potatoes, toss with oil and roast for 25 minutes.\n2. Add salmon and broccoli to the tray. Roast for another 12–15 minutes until the fish is cooked through and potatoes are tender.\n3. Finish with lemon juice."
+  },
+  {
+    "id": "red-lentil-dal",
+    "version": 0,
+    "title": "Coconut & red lentil dal",
+    "tags": [
+      "vegan",
+      "batch cooking",
+      "comfort"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "quantity": 300,
+        "unit": "g",
+        "name": "red lentils"
+      },
+      {
+        "quantity": 400,
+        "unit": "ml",
+        "name": "coconut milk"
+      },
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "chopped tomatoes"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "onion"
+      },
+      {
+        "quantity": 15,
+        "unit": "g",
+        "name": "ginger"
+      },
+      {
+        "quantity": 10,
+        "unit": "g",
+        "name": "curry powder"
+      },
+      {
+        "quantity": 250,
+        "unit": "g",
+        "name": "rice"
+      },
+      {
+        "quantity": 15,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 690,
+      "protein_g": 23,
+      "carbs_g": 99,
+      "fat_g": 23
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Soften diced onion in oil for 8 minutes. Add grated ginger and curry powder.\n2. Add rinsed lentils, tomatoes, coconut milk and 500 ml water. Simmer for 20–25 minutes, stirring and adding water as needed.\n3. Cook rice separately according to pack instructions. Serve with the dal."
+  },
+  {
+    "id": "chicken-pepper-traybake",
+    "version": 0,
+    "title": "Chicken & pepper traybake",
+    "tags": [
+      "chicken",
+      "oven",
+      "weeknight"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 300,
+        "unit": "g",
+        "name": "chicken breast"
+      },
+      {
+        "quantity": 300,
+        "unit": "g",
+        "name": "bell peppers"
+      },
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "potatoes"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "red onion"
+      },
+      {
+        "quantity": 20,
+        "unit": "ml",
+        "name": "olive oil"
+      },
+      {
+        "quantity": 5,
+        "unit": "g",
+        "name": "paprika"
+      }
+    ],
+    "nutrition": {
+      "kcal": 570,
+      "protein_g": 43,
+      "carbs_g": 53,
+      "fat_g": 19
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Heat oven to 210°C. Cut potatoes into small wedges, peppers into strips and onion into wedges.\n2. Toss vegetables with oil and paprika, roast for 20 minutes.\n3. Add chicken, cut into large pieces, and roast for 20–25 minutes more until cooked through."
+  },
+  {
+    "id": "spinach-ricotta-pasta",
+    "version": 0,
+    "title": "Spinach & ricotta pasta",
+    "tags": [
+      "vegetarian",
+      "pasta",
+      "quick"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 180,
+        "unit": "g",
+        "name": "pasta"
+      },
+      {
+        "quantity": 250,
+        "unit": "g",
+        "name": "spinach"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "ricotta"
+      },
+      {
+        "quantity": 1,
+        "unit": "unit",
+        "name": "lemon"
+      },
+      {
+        "quantity": 20,
+        "unit": "g",
+        "name": "parmesan"
+      },
+      {
+        "quantity": 10,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 610,
+      "protein_g": 28,
+      "carbs_g": 76,
+      "fat_g": 22
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Cook pasta, reserving a mug of cooking water.\n2. Wilt spinach in olive oil in a large pan. Stir in ricotta, lemon zest and a splash of pasta water.\n3. Toss with the pasta, loosen with more cooking water and finish with parmesan."
+  },
+  {
+    "id": "black-bean-tacos",
+    "version": 0,
+    "title": "Black bean & avocado tacos",
+    "tags": [
+      "vegetarian",
+      "quick",
+      "Mexican"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "cooked black beans"
+      },
+      {
+        "quantity": 6,
+        "unit": "unit",
+        "name": "small tortillas"
+      },
+      {
+        "quantity": 1,
+        "unit": "unit",
+        "name": "avocado"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "tomatoes"
+      },
+      {
+        "quantity": 1,
+        "unit": "unit",
+        "name": "lime"
+      },
+      {
+        "quantity": 5,
+        "unit": "g",
+        "name": "ground cumin"
+      }
+    ],
+    "nutrition": {
+      "kcal": 680,
+      "protein_g": 23,
+      "carbs_g": 87,
+      "fat_g": 25
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Warm drained beans with cumin and a splash of water, then lightly mash.\n2. Dice tomatoes and avocado; toss with lime juice.\n3. Warm tortillas, spoon in beans and top with the fresh mixture."
+  },
+  {
+    "id": "mushroom-barley-soup",
+    "version": 0,
+    "title": "Mushroom & barley soup",
+    "tags": [
+      "vegan",
+      "batch cooking",
+      "comfort"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "quantity": 500,
+        "unit": "g",
+        "name": "mushrooms"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "pearl barley"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "carrots"
+      },
+      {
+        "quantity": 200,
+        "unit": "g",
+        "name": "onion"
+      },
+      {
+        "quantity": 1000,
+        "unit": "ml",
+        "name": "vegetable stock"
+      },
+      {
+        "quantity": 20,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 340,
+      "protein_g": 11,
+      "carbs_g": 56,
+      "fat_g": 8
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Dice onion and carrots, slice mushrooms. Soften onion and carrots in oil for 8 minutes.\n2. Add mushrooms and cook for 5 minutes. Add barley and stock.\n3. Simmer for 35–45 minutes until barley is tender, adding water if needed."
+  },
+  {
+    "id": "tomato-butter-beans",
+    "version": 0,
+    "title": "Tomato & butter beans",
+    "tags": [
+      "vegetarian",
+      "one pot",
+      "quick"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "cooked butter beans"
+      },
+      {
+        "quantity": 400,
+        "unit": "g",
+        "name": "chopped tomatoes"
+      },
+      {
+        "quantity": 100,
+        "unit": "g",
+        "name": "onion"
+      },
+      {
+        "quantity": 100,
+        "unit": "g",
+        "name": "spinach"
+      },
+      {
+        "quantity": 80,
+        "unit": "g",
+        "name": "feta"
+      },
+      {
+        "quantity": 15,
+        "unit": "ml",
+        "name": "olive oil"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "bread"
+      }
+    ],
+    "nutrition": {
+      "kcal": 660,
+      "protein_g": 29,
+      "carbs_g": 81,
+      "fat_g": 22
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Soften chopped onion in oil. Add tomatoes and simmer for 10 minutes.\n2. Add drained beans and spinach. Simmer until hot and wilted.\n3. Crumble feta over the top and serve with bread."
+  },
+  {
+    "id": "courgette-pea-risotto",
+    "version": 0,
+    "title": "Courgette & pea risotto",
+    "tags": [
+      "vegetarian",
+      "Italian",
+      "seasonal"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "quantity": 180,
+        "unit": "g",
+        "name": "risotto rice"
+      },
+      {
+        "quantity": 250,
+        "unit": "g",
+        "name": "courgette"
+      },
+      {
+        "quantity": 150,
+        "unit": "g",
+        "name": "peas"
+      },
+      {
+        "quantity": 100,
+        "unit": "g",
+        "name": "onion"
+      },
+      {
+        "quantity": 700,
+        "unit": "ml",
+        "name": "vegetable stock"
+      },
+      {
+        "quantity": 30,
+        "unit": "g",
+        "name": "parmesan"
+      },
+      {
+        "quantity": 15,
+        "unit": "ml",
+        "name": "olive oil"
+      }
+    ],
+    "nutrition": {
+      "kcal": 590,
+      "protein_g": 20,
+      "carbs_g": 87,
+      "fat_g": 17
+    },
+    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
+    "method": "1. Soften chopped onion and diced courgette in oil. Stir in rice for 1 minute.\n2. Add hot stock a ladle at a time, stirring until absorbed, for around 20 minutes.\n3. Add peas for the last 5 minutes. Stir in parmesan and rest for 2 minutes."
+  }
+]
