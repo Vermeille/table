@@ -1,5 +1,7 @@
 # Table
 
+The interface, recipe defaults and user manual are in French. Existing English sample recipes, saved recipe snapshots and grocery labels receive an idempotent text-only translation on upgrade; IDs, ingredient quantities, nutrition and approval state are preserved. Original history is retained. New assistant output is instructed to use French.
+
 A self-hosted meal-planning app backed by Hermes. The app owns the cookbook, preferences, learned guidance, weekly plans, recipe snapshots, approvals and shopping-operation records. Hermes supplies the reasoning and tool execution through four disposable, app-managed profiles. There is no dependency on Hermes Studio, a preconfigured personal profile, or a hosted UI.
 
 ## Install against a fresh Hermes gateway

@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import httpx
 from cryptography.fernet import Fernet
 import domain as D
+from french import error as french_error
 ROOT=Path(__file__).parent;LOG=logging.getLogger('table');TOKENS={};SESSIONS={};PROVISION_LOCK=asyncio.Lock()
 PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
 HELP={
@@ -29,8 +30,8 @@ def model():return encrypted_read('model') or {'provider':'openai-codex','model'
 def config():return encrypted_read('connection') or {'url':os.getenv('HERMES_URL','http://hermes-agent:8642'),'app_url':os.getenv('TABLE_INTERNAL_URL','http://table:8080'),'api_key':os.getenv('API_SERVER_KEY','')}
 async def provision(role):
     async with PROVISION_LOCK:
-        learning=D.read('learning',role)['text'];skill=(ROOT/'skills'/f'{role}.md').read_text()+'\n\n## Learned guidance\n\n'+(learning or 'No learned preferences yet.')
-        cfg=config();payload={'id':'table-'+role,'role':role,'title':'Table · '+role.title(),'soul':f'You are Table’s {role} assistant. Use the table-{role} skill for all durable operations. The Table app owns recipes, preferences, plans and approvals. Never edit app data directly. Read the skill now; use its CLI. Owner approval happens only in the app. Do not call checkout or place orders.','skill':skill,'cli':(ROOT/'table_cli.py').read_text(),'url':cfg['app_url'],'token':TOKENS[role],'model':model()}
+        learning=D.read('learning',role)['text'];skill=(ROOT/'skills'/f'{role}.md').read_text()+'\n\n## Indications apprises\n\n'+(learning or 'Aucune préférence apprise pour le moment.')
+        cfg=config();payload={'id':'table-'+role,'role':role,'title':'Table · '+{'cookbook':'Recettes','planner':'Planning','shopper':'Courses','cart':'Chronodrive'}[role],'soul':f'You are Table’s {role} assistant. Use the table-{role} skill for all durable operations. The Table app owns recipes, preferences, plans and approvals. Never edit app data directly. Read the skill now; use its CLI. Owner approval happens only in the app. Do not call checkout or place orders. Communique toujours en français. Rédige les titres, ingrédients, étapes, étiquettes et nouvelles indications apprises en français. Conserve les identifiants techniques existants.','skill':skill,'cli':(ROOT/'table_cli.py').read_text(),'url':cfg['app_url'],'token':TOKENS[role],'model':model()}
         env={**os.environ,'API_SERVER_KEY':cfg['api_key']}
         proc=await asyncio.create_subprocess_exec(sys.executable,str(ROOT/'profile_worker.py'),stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE,env=env)
         out,err=await proc.communicate(json.dumps(payload).encode())
@@ -73,16 +74,18 @@ async def lifespan(app):
     global TOKENS
     D.init();D.DATA.chmod(0o700)
     if not (D.DATA/'key').exists():(D.DATA/'key').write_bytes(Fernet.generate_key());(D.DATA/'key').chmod(0o600)
-    with D.db() as c:c.execute("UPDATE runs SET status='unknown',error='Submission was interrupted. Check Hermes Bot Chat before retrying.' WHERE status='submitting'")
+    with D.db() as c:c.execute("UPDATE runs SET status='unknown',error='L’envoi a été interrompu. Vérifiez la discussion Hermes avant de réessayer.' WHERE status='submitting'")
     TOKENS=encrypted_read('tokens') or {role:secrets.token_urlsafe(40) for role in D.ROLES};encrypted_write('tokens',TOKENS)
     for r in D.recipes():D.write_markdown(r)
     if not D.recipes():
         for recipe in json.loads((ROOT/'seed.json').read_text()):D.save_recipe(recipe)
+    from french import migrate
+    migrate()
     try:
         for role in D.ROLES:await provision(role)
         await wait_profiles()
         app.state.provision_error=None
-    except Exception as e:app.state.provision_error=str(getattr(e,'detail',e));LOG.warning('Setup needed: %s',app.state.provision_error)
+    except Exception as e:app.state.provision_error=french_error(str(getattr(e,'detail',e)));LOG.warning('Setup needed: %s',app.state.provision_error)
     task=asyncio.create_task(poll());yield;task.cancel()
     with contextlib.suppress(asyncio.CancelledError):await task
 app=FastAPI(lifespan=lifespan)
@@ -92,14 +95,16 @@ async def auth(request,call_next):
     if request.method in ('POST','PUT','DELETE') and request.headers.get('Origin') and request.headers['Origin']!=str(request.base_url).rstrip('/'):
         # Proxy base_url may have forwarded HTTPS; compare host plus HTTPS from the public browser.
         from urllib.parse import urlsplit
-        if urlsplit(request.headers['Origin']).netloc!=request.headers.get('host'):return JSONResponse({'detail':'Origin mismatch'},403)
+        if urlsplit(request.headers['Origin']).netloc!=request.headers.get('host'):return JSONResponse({'detail':'Origine de la demande non autorisée'},403)
     if p.startswith('/api/') and p not in ('/api/health','/api/login') and not p.startswith('/api/worker/'):
         token=request.cookies.get('table_session','')
-        if SESSIONS.get(token,0)<time.time():return JSONResponse({'detail':'Sign in to Table'},401)
+        if SESSIONS.get(token,0)<time.time():return JSONResponse({'detail':'Connectez-vous à Table'},401)
     try:return await call_next(request)
-    except ValueError as e:return JSONResponse({'detail':str(e)},409)
+    except ValueError as e:return JSONResponse({'detail':french_error(str(e))},409)
+@app.exception_handler(HTTPException)
+async def http_error(req,e):return JSONResponse({'detail':french_error(e.detail)},status_code=e.status_code,headers=e.headers)
 @app.exception_handler(ValueError)
-async def invalid(req,e):return JSONResponse({'detail':str(e)},409)
+async def invalid(req,e):return JSONResponse({'detail':french_error(str(e))},409)
 @app.get('/api/health')
 def health():return {'status':'ok','setup_error':getattr(app.state,'provision_error',None)}
 @app.post('/api/login')
@@ -224,12 +229,12 @@ async def submit(role,week,prompt):
         listing=await hermes(role,'GET','/api/sessions?title=Bot%20Chat&include_hidden=1');s=next((s for s in listing.get('data',[]) if s.get('title')=='Bot Chat'),None)
         if not s:
             raw=await hermes(role,'POST','/api/sessions',{'title':'Bot Chat','source':'bot_peer_dm'});s=raw.get('session',raw)
-        text=f'Current app week: {week}. Use your table-{role} skill and its CLI for all changes. Owner request: '+prompt
+        text=f'Semaine sélectionnée : {week}. Réponds en français et rédige tout nouveau contenu en français. Use your table-{role} skill and its CLI for all changes. Owner request: '+prompt
         if len(text)>16000:raise ValueError('Please shorten this request.')
         r=await hermes(role,'POST','/v1/runs',{'session_id':s['id'],'input':text},{'Idempotency-Key':'table-'+rid})
         with D.db() as c:c.execute('UPDATE runs SET status=?,remote=?,session=? WHERE id=?',('running',r['run_id'],s['id'],rid))
     except Exception as e:
-        with D.db() as c:c.execute("UPDATE runs SET status='unknown',error=? WHERE id=?",('Could not confirm submission. Check Hermes Bot Chat before retrying.',rid))
+        with D.db() as c:c.execute("UPDATE runs SET status='unknown',error=? WHERE id=?",('Impossible de confirmer l’envoi. Vérifiez la discussion Hermes avant de réessayer.',rid))
         raise
     return {'id':rid,'status':'running'}
 @app.post('/api/chat')

@@ -1,0 +1,19 @@
+const {chromium}=require('/tmp/studio-qa/node_modules/playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const context=await browser.newContext({locale:'fr-FR',viewport:{width:1600,height:1050}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('https://table.vermeille.fr');if(await page.locator('html').getAttribute('lang')!=='fr')throw Error('Missing French document language');
+ await page.locator('#password').fill('deliberately-wrong-french-check');await page.getByRole('button',{name:'Entrer'}).click();await page.getByText('Mot de passe incorrect',{exact:true}).waitFor();
+ await page.locator('#password').fill(process.env.TABLE_PASSWORD);await page.getByRole('button',{name:'Entrer'}).click();await page.getByRole('heading',{name:'Faites place aux bons repas.'}).waitFor();
+ await page.locator('#week-picker').fill('2026-11-09');const response=page.waitForResponse(r=>r.url().includes('state?week=2026-11-09'));await page.locator('#week-picker').dispatchEvent('change');await response;await page.waitForTimeout(400);
+ const state=await(await page.request.get('https://table.vermeille.fr/api/state?week=2026-11-09')).json();if(state.recipes.length<12)throw Error('Translated recipes missing');if(!state.recipes.every(r=>r.method.startsWith('1. ')))throw Error('Recipe steps missing');
+ if(await page.locator('.meal-title').count()){await page.locator('.meal-title').first().click();await page.getByRole('heading',{name:'Les ingrédients',exact:true}).waitFor();await page.getByRole('button',{name:'Fermer',exact:true}).click();}await page.screenshot({path:'/results/table-fr-week.png',fullPage:true});
+ await page.locator('[data-view=cookbook]').first().click();await page.locator('#recipe-search').fill('epinards');await page.locator('.recipe-card').filter({hasText:'Pâtes aux épinards et à la ricotta'}).click();await page.locator('#modal').getByRole('heading',{name:'Pâtes aux épinards et à la ricotta',exact:true}).waitFor();if(!(await page.locator('.ingredients').innerText()).includes('épinards'))throw Error('Ingredients not translated');await page.screenshot({path:'/results/table-fr-recipe.png',fullPage:true});await page.getByRole('button',{name:'Fermer',exact:true}).click();
+ await page.locator('[data-view=shopping]').first().click();await page.getByRole('heading',{name:'Les courses, tout simplement.',exact:true}).waitFor();await page.screenshot({path:'/results/table-fr-shopping.png',fullPage:true});
+ await page.locator('[data-view=preferences]').first().click();await page.getByRole('heading',{name:'Vos repas',exact:true}).waitFor();
+ await page.locator('[data-view=skills]').first().click();await page.getByRole('heading',{name:'Assistant recettes',exact:true}).waitFor();
+ await page.locator('[data-view=settings]').first().click();await page.getByRole('button',{name:'Installer / mettre à jour les profils'}).waitFor();await page.screenshot({path:'/results/table-fr-settings.png',fullPage:true});
+ await page.locator('[data-view=week]').first().click();await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/results/table-fr-mobile.png',fullPage:true});const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,viewport:innerWidth}));if(overflow.page>overflow.viewport+1)throw Error('Mobile page overflows: '+JSON.stringify(overflow));
+ await page.getByRole('button',{name:'✧ Assistant cuisine',exact:true}).click();await page.locator('#chat-input').waitFor({state:'visible'});await page.screenshot({path:'/results/table-fr-mobile-chat.png',fullPage:true});
+ if(errors.length)throw Error(errors.join('\n'));console.log('PASS French desktop/mobile: login errors, dates, recipe snapshots, accent-insensitive search, ingredients, groceries, preferences, skills and connections.');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

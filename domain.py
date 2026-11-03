@@ -21,7 +21,7 @@ def init():
         ''')
         for role in ROLES:
             if not get(c,'learning',role):put(c,'learning',role,{'text':''})
-        if not get(c,'preferences','main'):put(c,'preferences','main',{'planner':'Plan dinners for 2 people. Prefer varied, practical meals; use leftovers intelligently. Ask about dietary restrictions rather than assuming them.','shopper':'Combine ingredients across meals. Ask before assuming anything is already in the pantry.','cart':'Prefer good value and appropriate pack sizes. Ask before substituting unavailable products.'})
+        if not get(c,'preferences','main'):put(c,'preferences','main',{'planner':'Prévoir des dîners pour 2 personnes. Privilégier des repas variés et pratiques, et utiliser les restes intelligemment. Demander les éventuelles contraintes alimentaires plutôt que les supposer.','shopper':'Regrouper les ingrédients communs aux repas. Demander avant de supposer qu’un ingrédient est déjà dans les réserves.','cart':'Privilégier le bon rapport qualité-prix et des formats adaptés. Demander avant de remplacer un produit indisponible.'})
     # Markdown files are a durable projection rebuilt from authoritative versioned documents.
     for r in recipes():write_markdown(r)
 def get(c,kind,id):
@@ -54,7 +54,7 @@ def save_recipe(data):
     for i in data['ingredients']:
         if not i.get('name') or not isinstance(i.get('quantity'),(int,float)) or i['quantity']<=0 or not isinstance(i.get('unit'),str):raise ValueError('Every ingredient needs a positive quantity, name and unit.')
     if not isinstance(data.get('tags',[]),list) or not isinstance(data.get('nutrition',{}),dict):raise ValueError('Invalid tags or nutrition.')
-    data.setdefault('nutrition',{});data.setdefault('tags',[]);data['nutrition_note']=data.get('nutrition_note','Estimated per serving; verify for dietary decisions.')
+    data.setdefault('nutrition',{});data.setdefault('tags',[]);data['nutrition_note']=data.get('nutrition_note','Estimation par personne, à vérifier selon vos besoins alimentaires.')
     with db() as c:r=put(c,'recipe',id,data,data.get('version',0))
     write_markdown(r);return r
 def week_id(id):

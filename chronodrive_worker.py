@@ -17,5 +17,5 @@ try:
     print(json.dumps({'ok':True,'result':result},ensure_ascii=False))
 except Exception as e:
     # HTTP errors can contain URLs with identity parameters. No raw exceptions leave this process.
-    print(json.dumps({'ok':False,'error':'Chronodrive request failed ('+type(e).__name__+'). Check credentials/store or service availability.'}))
+    print(json.dumps({'ok':False,'error':'La requête Chronodrive a échoué ('+type(e).__name__+'). Vérifiez vos identifiants, le magasin ou la disponibilité du service.'}))
     sys.exit(1)

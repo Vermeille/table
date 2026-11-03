@@ -1,53 +1,59 @@
-# Using Table
+# Utiliser Table
 
-Sign in with the password configured at installation. The right panel is your assistant; on a phone, use **Kitchen assistant**. Changing the assistant does not change the selected week. Chat changes appear in the main app when saved. A running assistant can be stopped, and tool approval or clarification requests appear in the conversation.
+Connectez-vous avec le mot de passe choisi à l’installation. L’assistant se trouve à droite ; sur téléphone, ouvrez **Assistant cuisine**. Vous pouvez choisir l’assistant recettes, planning, courses ou Chronodrive. Les modifications qu’il enregistre apparaissent dans l’application. Le bouton **Arrêter** interrompt son travail ; les questions et demandes d’autorisation s’affichent dans la discussion.
 
-## 1. Set your preferences
+## Vos préférences
 
-Open **Preferences**. Describe household size, dietary constraints, foods you like/dislike, time available and desired variety under **Your meals**. Use **Your shopping** for pantry and grocery habits, and **Your products** for brands, pack sizes and substitutions. Save. These are persistent inputs read by the assistants, not a one-off chat message. New preferences guide future runs; already approved plans remain unchanged until you ask to revise them.
+Dans **Préférences**, renseignez **Vos repas** : nombre de personnes, goûts, contraintes alimentaires, temps disponible et variété souhaitée. Dans **Vos courses**, indiquez vos réserves et habitudes d’achat. Dans **Vos produits**, précisez marques, formats, budget et substitutions acceptées. Cliquez sur **Enregistrer les préférences**.
 
-## 2. Grow the cookbook
+Ces indications sont enregistrées et relues par les assistants. Elles guident leurs prochaines propositions sans modifier automatiquement un planning déjà validé.
 
-Open **Cookbook**. Search titles/tags and tap a recipe to see ingredients, method and estimated nutrition. **Add recipe** opens a manual editor; ingredient lines use `quantity | unit | name`. Existing recipes can be edited and downloaded as Markdown.
+## Votre carnet de recettes
 
-Select the cookbook assistant and try:
+Ouvrez **Recettes**. Recherchez un plat ou une étiquette, puis ouvrez sa fiche pour consulter ingrédients, préparation et valeurs nutritionnelles estimées. **Ajouter une recette** permet de saisir un plat vous-même. Dans l’éditeur, chaque ingrédient occupe une ligne au format `quantité | unité | nom`, par exemple `200 | g | lentilles`.
 
-- “Add four different pizzas, including two vegetarian ones.”
-- “Make a new version of this recipe without sour cream. Keep the original.”
-- “Make this recipe healthier, explaining what you changed.”
+Avec l’assistant recettes, vous pouvez demander :
 
-The assistant writes actual cookbook records through its skill. Nutrition is an estimate, including the bundled sample recipes. Variants have separate IDs so the original remains available.
+- « Ajoute plusieurs sortes de pizzas, dont deux végétariennes. »
+- « Fais une variante sans crème fraîche, en conservant l’originale. »
+- « Propose une version plus équilibrée et explique les changements. »
 
-## 3. Plan a week
+Les recettes sont réellement enregistrées dans le carnet. Les variantes gardent leur propre identifiant. **Télécharger en Markdown** permet d’en conserver une copie. Les valeurs nutritionnelles sont des estimations, y compris pour les recettes fournies avec l’application.
 
-In **This week**, choose a week using the arrows or date picker. **Help me plan** prepares a message; press **Send** to run it. Ask for iterations such as “Swap Wednesday for something quicker” or “Less pasta, and use the leftover vegetables.”
+## Préparer la semaine
 
-Use **Pick a meal** to search your cookbook directly. **Swap** changes an individual meal, servings can be edited, and × removes a slot. You may schedule breakfast, lunch and dinner; dinner is the assistant's default. Tap a planned meal to see its stored recipe.
+Dans **Cette semaine**, utilisez les flèches ou le calendrier pour choisir une semaine. **M’aider à planifier** prépare une demande : envoyez-la avec **Envoyer**. Affinez ensuite la proposition : « Plus rapide le mercredi », « Moins de pâtes » ou « Utilise les légumes restants ».
 
-When satisfied, press **Approve this week**. It saves recipe snapshots with the plan. **Saved weeks** lets you return later. You can re-edit a week; each edit reopens approval and removes downstream groceries and product proposals so they cannot refer to an obsolete plan.
+**Choisir un repas** ouvre la recherche dans le carnet. **Remplacer** permet de changer un plat ; le champ **Pour** ajuste le nombre de personnes et × retire le repas. Le planning accepte petits-déjeuners, déjeuners et dîners ; les assistants proposent des dîners par défaut. Ouvrez un plat pour retrouver sa recette.
 
-## 4. Review groceries
+Lorsque le planning vous convient, cliquez sur **Valider cette semaine**. Les recettes sont conservées avec la semaine : une modification ultérieure du carnet ne change pas ces copies. Retrouvez-les dans **Semaines enregistrées**. Vous pouvez rééditer le planning ; toute modification demande une nouvelle validation et supprime les propositions de courses et de produits devenues obsolètes.
 
-Open **Shopping** after approving meals. **Ask the shopper** prepares a request to combine ingredients and apply your preferences. Press **Send**. Alternatively **Start with ingredient totals** creates the deterministic scaled list immediately.
+## Préparer et valider les courses
 
-Edit ingredient names, quantities or units. Tick items already in your pantry, add missing items, or remove anything unnecessary. Changes are saved immediately and require approval again. Press **Approve groceries** when finished.
+Ouvrez **Courses** après avoir validé les repas. **Préparer avec l’assistant** compose une demande pour regrouper les ingrédients selon vos préférences ; envoyez-la. **Calculer les quantités des recettes** produit directement une liste calculée à partir des portions prévues.
 
-## 5. Choose products and fill Chronodrive
+Ajustez noms, quantités et unités. Cochez les articles déjà en réserve, ajoutez les produits manquants ou retirez ceux dont vous n’avez pas besoin. Ces modifications sont enregistrées immédiatement. Cliquez sur **Valider les courses** quand la liste est prête.
 
-First save your Chronodrive account/store in **Connections**. Credentials are entered there, not in chat. Test the connection before starting.
+## Choisir les produits et remplir le panier Chronodrive
 
-Choose **Find Chronodrive products**, then send the prepared message. The cart assistant searches the real store catalog and proposes exact products, pack quantities and sizing notes. It reads **Your products** and its learned brand preferences. Ask for alternatives before approval: “Use this brand for yoghurt” or “Choose smaller packs so we don’t waste the rest.” Unmatched ingredients must be resolved first.
+Dans **Connexions**, enregistrez votre compte Chronodrive et l’identifiant de votre magasin, visible dans son adresse web. Utilisez **Tester la connexion** pour lire le panier actuel sans le modifier. Ne transmettez pas vos identifiants dans la discussion.
 
-Press **Approve these products**, then **Fill approved cart**. These are distinct actions: approving products alone does not change the cart. Table permits only the approved product IDs and quantities. It does not clear an existing cart or place an order. Review the assistant's result and open Chronodrive to check totals, availability, collection time and checkout yourself.
+Après validation des courses, choisissez **Trouver les produits Chronodrive**, puis envoyez la demande. L’assistant recherche les produits et propose les références, formats et nombres de paquets exacts. Il tient compte de vos marques préférées. Vous pouvez demander : « Prends cette marque pour le yaourt » ou « Choisis de plus petits formats pour éviter le gaspillage ». Les articles sans correspondance doivent être résolus avant validation.
 
-If an addition times out, its outcome is unknown. Stop and inspect the real cart; do not resend the request assuming nothing happened. Operation records are retained. Reconciliation currently requires an administrator; this PoC intentionally blocks further automatic additions after an unknown result.
+Cliquez sur **Valider ces produits**, puis **Remplir le panier validé**. Ce sont deux actions distinctes : valider la sélection ne modifie pas le panier. L’application autorise uniquement les références et quantités validées. Elle ne vide pas votre panier et ne passe pas commande. Si un produit est déjà présent, son ajout est refusé afin de ne pas écraser sa quantité.
 
-## 6. Teach the assistants
+Ouvrez Chronodrive pour contrôler prix, disponibilités, créneau de retrait et paiement. En cas de résultat incertain après un délai d’attente, vérifiez le vrai panier avant toute nouvelle tentative. L’application bloque les ajouts automatiques tant que cette situation n’est pas résolue ; la réconciliation nécessite actuellement une intervention d’administration.
 
-Give concrete feedback: “I always prefer brand X for milk” or “Keep Fridays under 20 minutes.” Ask the assistant to remember it. Each role's skill can store learned guidance in Table and reinstall that guidance in Hermes. Open **Skills & learning** to inspect/edit it or restore an earlier revision. Explicit **Preferences** remain your primary settings; learned guidance supplements them.
+## Des assistants qui apprennent
 
-## Connections and troubleshooting
+Donnez des retours précis : « Je préfère toujours cette marque pour le lait » ou « Le vendredi, je veux cuisiner en moins de 20 minutes ». Demandez à l’assistant de s’en souvenir. Chaque assistant peut enregistrer des indications apprises dans Table et les transmettre à son savoir-faire Hermes.
 
-On a fresh installation, set the Hermes URL/key, internal Table URL, provider and model, then **Install / update profiles**. Use **Sign in with OpenAI** for Codex subscription access, or enter an API key for OpenAI/API-compatible providers. Reinstalling profiles preserves Table recipes, weeks, preferences and learning.
+Dans **Savoir-faire & apprentissage**, consultez ou modifiez ces indications. **Historique des versions** permet de retrouver et restaurer une version précédente. Les **Préférences** restent vos réglages principaux ; les indications apprises les complètent.
 
-If an assistant cannot connect, check the configured gateway URL, provider login and private Docker network. The Hermes gateway must reach the internal Table URL. If Stop/clarifications fail after replacing the Hermes container, recreate Table's bridge sidecar. If Chronodrive fails, verify credentials and store ID; its frontend API may have changed. A credentials-saved badge confirms storage, not successful authentication—use **Test connection**.
+## Connexions et dépannage
+
+Sur une nouvelle installation, renseignez l’adresse et la clé de la passerelle Hermes, l’adresse interne de Table, le fournisseur et le modèle. Cliquez sur **Installer / mettre à jour les profils**. Pour un abonnement Codex, utilisez **Se connecter avec OpenAI** ; pour l’API OpenAI ou un service compatible, saisissez une clé API et, si nécessaire, une adresse de base.
+
+Si un assistant ne se connecte pas, vérifiez ces paramètres, l’authentification du modèle et le réseau Docker privé. Hermes doit pouvoir joindre l’adresse interne de Table. Si les boutons d’arrêt ou de clarification ne fonctionnent plus après remplacement du conteneur Hermes, recréez le conteneur de passerelle de Table.
+
+Pour Chronodrive, vérifiez les identifiants et le magasin. Le badge **Identifiants enregistrés** confirme leur sauvegarde, pas la réussite de l’authentification : utilisez **Tester la connexion**. Une évolution du site Chronodrive peut nécessiter une mise à jour du client.

@@ -2,23 +2,23 @@
   {
     "id": "margherita-pizza",
     "version": 0,
-    "title": "Margherita pizza",
+    "title": "Pizza margherita",
     "tags": [
-      "Italian",
-      "vegetarian",
-      "weekend"
+      "italien",
+      "végétarien",
+      "week-end"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 250,
         "unit": "g",
-        "name": "pizza dough"
+        "name": "pâte à pizza"
       },
       {
         "quantity": 150,
         "unit": "g",
-        "name": "tomato passata"
+        "name": "coulis de tomate"
       },
       {
         "quantity": 125,
@@ -28,12 +28,12 @@
       {
         "quantity": 10,
         "unit": "g",
-        "name": "fresh basil"
+        "name": "basilic frais"
       },
       {
         "quantity": 10,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -42,49 +42,49 @@
       "carbs_g": 72,
       "fat_g": 22
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Heat the oven to its highest setting with a baking tray inside.\n2. Stretch the dough onto baking paper. Spread with passata and torn mozzarella.\n3. Bake on the hot tray for 10–15 minutes until the base is crisp and the cheese bubbles.\n4. Finish with basil and olive oil."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Préchauffez le four à sa température maximale avec une plaque à l’intérieur.\n2. Étalez la pâte sur du papier cuisson. Garnissez-la de coulis de tomate et de mozzarella déchirée en morceaux.\n3. Faites cuire sur la plaque chaude pendant 10 à 15 minutes, jusqu’à ce que la pâte soit croustillante et le fromage bouillonnant.\n4. Ajoutez le basilic et un filet d’huile d’olive avant de servir."
   },
   {
     "id": "lemon-chickpea-bowl",
     "version": 0,
-    "title": "Lemon & chickpea bowls",
+    "title": "Bols de pois chiches au citron",
     "tags": [
-      "vegetarian",
-      "quick",
-      "Mediterranean"
+      "végétarien",
+      "rapide",
+      "méditerranéen"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 400,
         "unit": "g",
-        "name": "cooked chickpeas"
+        "name": "pois chiches cuits"
       },
       {
         "quantity": 150,
         "unit": "g",
-        "name": "couscous"
+        "name": "semoule de couscous"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "cucumber"
+        "name": "concombre"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "tomatoes"
+        "name": "tomates"
       },
       {
         "quantity": 1,
-        "unit": "unit",
-        "name": "lemon"
+        "unit": "pièce",
+        "name": "citron"
       },
       {
         "quantity": 20,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       },
       {
         "quantity": 50,
@@ -98,16 +98,16 @@
       "carbs_g": 78,
       "fat_g": 22
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Cover couscous with boiling water following pack instructions. Rest covered, then fluff.\n2. Dice cucumber and tomatoes. Drain and rinse chickpeas.\n3. Mix lemon juice and olive oil. Toss everything together and crumble over feta."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Versez de l’eau bouillante sur la semoule en suivant les indications du paquet. Couvrez, laissez gonfler, puis égrainez à la fourchette.\n2. Coupez le concombre et les tomates en dés. Égouttez et rincez les pois chiches.\n3. Mélangez le jus de citron et l’huile d’olive. Réunissez tous les ingrédients, mélangez et parsemez de feta émiettée."
   },
   {
     "id": "roast-salmon-potatoes",
     "version": 0,
-    "title": "Roast salmon & new potatoes",
+    "title": "Saumon rôti et pommes de terre",
     "tags": [
-      "fish",
-      "oven",
+      "poisson",
+      "au four",
       "simple"
     ],
     "servings": 2,
@@ -115,27 +115,27 @@
       {
         "quantity": 300,
         "unit": "g",
-        "name": "salmon fillet"
+        "name": "filet de saumon"
       },
       {
         "quantity": 500,
         "unit": "g",
-        "name": "potatoes"
+        "name": "pommes de terre"
       },
       {
         "quantity": 300,
         "unit": "g",
-        "name": "broccoli"
+        "name": "brocoli"
       },
       {
         "quantity": 1,
-        "unit": "unit",
-        "name": "lemon"
+        "unit": "pièce",
+        "name": "citron"
       },
       {
         "quantity": 15,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -144,59 +144,59 @@
       "carbs_g": 48,
       "fat_g": 30
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Heat oven to 210°C. Halve potatoes, toss with oil and roast for 25 minutes.\n2. Add salmon and broccoli to the tray. Roast for another 12–15 minutes until the fish is cooked through and potatoes are tender.\n3. Finish with lemon juice."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Préchauffez le four à 210 °C. Coupez les pommes de terre en deux, mélangez-les avec l’huile et faites-les rôtir pendant 25 minutes.\n2. Ajoutez le saumon et le brocoli sur la plaque. Poursuivez la cuisson pendant 12 à 15 minutes, jusqu’à ce que le poisson soit cuit à cœur et les pommes de terre tendres.\n3. Arrosez de jus de citron avant de servir."
   },
   {
     "id": "red-lentil-dal",
     "version": 0,
-    "title": "Coconut & red lentil dal",
+    "title": "Dahl de lentilles corail au lait de coco",
     "tags": [
-      "vegan",
-      "batch cooking",
-      "comfort"
+      "végétalien",
+      "à préparer en avance",
+      "réconfortant"
     ],
     "servings": 4,
     "ingredients": [
       {
         "quantity": 300,
         "unit": "g",
-        "name": "red lentils"
+        "name": "lentilles corail"
       },
       {
         "quantity": 400,
         "unit": "ml",
-        "name": "coconut milk"
+        "name": "lait de coco"
       },
       {
         "quantity": 400,
         "unit": "g",
-        "name": "chopped tomatoes"
+        "name": "tomates concassées"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "onion"
+        "name": "oignon"
       },
       {
         "quantity": 15,
         "unit": "g",
-        "name": "ginger"
+        "name": "gingembre"
       },
       {
         "quantity": 10,
         "unit": "g",
-        "name": "curry powder"
+        "name": "curry en poudre"
       },
       {
         "quantity": 250,
         "unit": "g",
-        "name": "rice"
+        "name": "riz"
       },
       {
         "quantity": 15,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -205,44 +205,44 @@
       "carbs_g": 99,
       "fat_g": 23
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Soften diced onion in oil for 8 minutes. Add grated ginger and curry powder.\n2. Add rinsed lentils, tomatoes, coconut milk and 500 ml water. Simmer for 20–25 minutes, stirring and adding water as needed.\n3. Cook rice separately according to pack instructions. Serve with the dal."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Faites revenir l’oignon coupé en dés dans l’huile pendant 8 minutes. Ajoutez le gingembre râpé et le curry.\n2. Ajoutez les lentilles rincées, les tomates, le lait de coco et 500 ml d’eau. Laissez mijoter pendant 20 à 25 minutes en remuant et en ajoutant de l’eau si nécessaire.\n3. Faites cuire le riz séparément selon les indications du paquet. Servez-le avec le dahl."
   },
   {
     "id": "chicken-pepper-traybake",
     "version": 0,
-    "title": "Chicken & pepper traybake",
+    "title": "Poulet et poivrons au four",
     "tags": [
-      "chicken",
-      "oven",
-      "weeknight"
+      "poulet",
+      "au four",
+      "en semaine"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 300,
         "unit": "g",
-        "name": "chicken breast"
+        "name": "blanc de poulet"
       },
       {
         "quantity": 300,
         "unit": "g",
-        "name": "bell peppers"
+        "name": "poivrons"
       },
       {
         "quantity": 400,
         "unit": "g",
-        "name": "potatoes"
+        "name": "pommes de terre"
       },
       {
         "quantity": 150,
         "unit": "g",
-        "name": "red onion"
+        "name": "oignon rouge"
       },
       {
         "quantity": 20,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       },
       {
         "quantity": 5,
@@ -256,29 +256,29 @@
       "carbs_g": 53,
       "fat_g": 19
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Heat oven to 210°C. Cut potatoes into small wedges, peppers into strips and onion into wedges.\n2. Toss vegetables with oil and paprika, roast for 20 minutes.\n3. Add chicken, cut into large pieces, and roast for 20–25 minutes more until cooked through."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Préchauffez le four à 210 °C. Coupez les pommes de terre en petits quartiers, les poivrons en lanières et l’oignon en quartiers.\n2. Mélangez les légumes avec l’huile et le paprika, puis faites-les rôtir pendant 20 minutes.\n3. Ajoutez le poulet coupé en gros morceaux et poursuivez la cuisson pendant 20 à 25 minutes, jusqu’à ce qu’il soit bien cuit à cœur."
   },
   {
     "id": "spinach-ricotta-pasta",
     "version": 0,
-    "title": "Spinach & ricotta pasta",
+    "title": "Pâtes aux épinards et à la ricotta",
     "tags": [
-      "vegetarian",
-      "pasta",
-      "quick"
+      "végétarien",
+      "pâtes",
+      "rapide"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 180,
         "unit": "g",
-        "name": "pasta"
+        "name": "pâtes"
       },
       {
         "quantity": 250,
         "unit": "g",
-        "name": "spinach"
+        "name": "épinards"
       },
       {
         "quantity": 150,
@@ -287,8 +287,8 @@
       },
       {
         "quantity": 1,
-        "unit": "unit",
-        "name": "lemon"
+        "unit": "pièce",
+        "name": "citron"
       },
       {
         "quantity": 20,
@@ -298,7 +298,7 @@
       {
         "quantity": 10,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -307,49 +307,49 @@
       "carbs_g": 76,
       "fat_g": 22
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Cook pasta, reserving a mug of cooking water.\n2. Wilt spinach in olive oil in a large pan. Stir in ricotta, lemon zest and a splash of pasta water.\n3. Toss with the pasta, loosen with more cooking water and finish with parmesan."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Faites cuire les pâtes en réservant une tasse d’eau de cuisson.\n2. Faites tomber les épinards dans l’huile d’olive, dans une grande poêle. Ajoutez la ricotta, le zeste du citron et un peu d’eau de cuisson.\n3. Ajoutez les pâtes et mélangez. Détendez la sauce avec un peu d’eau de cuisson si nécessaire, puis parsemez de parmesan."
   },
   {
     "id": "black-bean-tacos",
     "version": 0,
-    "title": "Black bean & avocado tacos",
+    "title": "Tacos aux haricots noirs et à l’avocat",
     "tags": [
-      "vegetarian",
-      "quick",
-      "Mexican"
+      "végétarien",
+      "rapide",
+      "mexicain"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 400,
         "unit": "g",
-        "name": "cooked black beans"
+        "name": "haricots noirs cuits"
       },
       {
         "quantity": 6,
-        "unit": "unit",
-        "name": "small tortillas"
+        "unit": "pièce",
+        "name": "petites tortillas"
       },
       {
         "quantity": 1,
-        "unit": "unit",
-        "name": "avocado"
+        "unit": "pièce",
+        "name": "avocat"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "tomatoes"
+        "name": "tomates"
       },
       {
         "quantity": 1,
-        "unit": "unit",
-        "name": "lime"
+        "unit": "pièce",
+        "name": "citron vert"
       },
       {
         "quantity": 5,
         "unit": "g",
-        "name": "ground cumin"
+        "name": "cumin moulu"
       }
     ],
     "nutrition": {
@@ -358,49 +358,49 @@
       "carbs_g": 87,
       "fat_g": 25
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Warm drained beans with cumin and a splash of water, then lightly mash.\n2. Dice tomatoes and avocado; toss with lime juice.\n3. Warm tortillas, spoon in beans and top with the fresh mixture."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Réchauffez les haricots égouttés avec le cumin et un peu d’eau, puis écrasez-les légèrement.\n2. Coupez les tomates et l’avocat en dés et arrosez-les de jus de citron vert.\n3. Réchauffez les tortillas, garnissez-les de haricots et ajoutez le mélange de tomates et d’avocat."
   },
   {
     "id": "mushroom-barley-soup",
     "version": 0,
-    "title": "Mushroom & barley soup",
+    "title": "Soupe aux champignons et à l’orge",
     "tags": [
-      "vegan",
-      "batch cooking",
-      "comfort"
+      "végétalien",
+      "à préparer en avance",
+      "réconfortant"
     ],
     "servings": 4,
     "ingredients": [
       {
         "quantity": 500,
         "unit": "g",
-        "name": "mushrooms"
+        "name": "champignons"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "pearl barley"
+        "name": "orge perlé"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "carrots"
+        "name": "carottes"
       },
       {
         "quantity": 200,
         "unit": "g",
-        "name": "onion"
+        "name": "oignon"
       },
       {
         "quantity": 1000,
         "unit": "ml",
-        "name": "vegetable stock"
+        "name": "bouillon de légumes"
       },
       {
         "quantity": 20,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -409,39 +409,39 @@
       "carbs_g": 56,
       "fat_g": 8
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Dice onion and carrots, slice mushrooms. Soften onion and carrots in oil for 8 minutes.\n2. Add mushrooms and cook for 5 minutes. Add barley and stock.\n3. Simmer for 35–45 minutes until barley is tender, adding water if needed."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Coupez l’oignon et les carottes en dés, puis émincez les champignons. Faites revenir l’oignon et les carottes dans l’huile pendant 8 minutes.\n2. Ajoutez les champignons et poursuivez la cuisson pendant 5 minutes. Versez l’orge et le bouillon.\n3. Laissez mijoter pendant 35 à 45 minutes, jusqu’à ce que l’orge soit tendre, en ajoutant de l’eau si nécessaire."
   },
   {
     "id": "tomato-butter-beans",
     "version": 0,
-    "title": "Tomato & butter beans",
+    "title": "Haricots blancs à la tomate",
     "tags": [
-      "vegetarian",
-      "one pot",
-      "quick"
+      "végétarien",
+      "tout-en-un",
+      "rapide"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 400,
         "unit": "g",
-        "name": "cooked butter beans"
+        "name": "gros haricots blancs cuits"
       },
       {
         "quantity": 400,
         "unit": "g",
-        "name": "chopped tomatoes"
+        "name": "tomates concassées"
       },
       {
         "quantity": 100,
         "unit": "g",
-        "name": "onion"
+        "name": "oignon"
       },
       {
         "quantity": 100,
         "unit": "g",
-        "name": "spinach"
+        "name": "épinards"
       },
       {
         "quantity": 80,
@@ -451,12 +451,12 @@
       {
         "quantity": 15,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       },
       {
         "quantity": 150,
         "unit": "g",
-        "name": "bread"
+        "name": "pain"
       }
     ],
     "nutrition": {
@@ -465,24 +465,24 @@
       "carbs_g": 81,
       "fat_g": 22
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Soften chopped onion in oil. Add tomatoes and simmer for 10 minutes.\n2. Add drained beans and spinach. Simmer until hot and wilted.\n3. Crumble feta over the top and serve with bread."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Faites revenir l’oignon émincé dans l’huile. Ajoutez les tomates et laissez mijoter pendant 10 minutes.\n2. Ajoutez les haricots égouttés et les épinards. Laissez mijoter jusqu’à ce que l’ensemble soit bien chaud et les épinards tombés.\n3. Parsemez de feta émiettée et servez avec le pain."
   },
   {
     "id": "courgette-pea-risotto",
     "version": 0,
-    "title": "Courgette & pea risotto",
+    "title": "Risotto aux courgettes et aux petits pois",
     "tags": [
-      "vegetarian",
-      "Italian",
-      "seasonal"
+      "végétarien",
+      "italien",
+      "de saison"
     ],
     "servings": 2,
     "ingredients": [
       {
         "quantity": 180,
         "unit": "g",
-        "name": "risotto rice"
+        "name": "riz pour risotto"
       },
       {
         "quantity": 250,
@@ -492,17 +492,17 @@
       {
         "quantity": 150,
         "unit": "g",
-        "name": "peas"
+        "name": "petits pois"
       },
       {
         "quantity": 100,
         "unit": "g",
-        "name": "onion"
+        "name": "oignon"
       },
       {
         "quantity": 700,
         "unit": "ml",
-        "name": "vegetable stock"
+        "name": "bouillon de légumes"
       },
       {
         "quantity": 30,
@@ -512,7 +512,7 @@
       {
         "quantity": 15,
         "unit": "ml",
-        "name": "olive oil"
+        "name": "huile d’olive"
       }
     ],
     "nutrition": {
@@ -521,7 +521,7 @@
       "carbs_g": 87,
       "fat_g": 17
     },
-    "nutrition_note": "Illustrative estimate per serving, not laboratory-verified.",
-    "method": "1. Soften chopped onion and diced courgette in oil. Stir in rice for 1 minute.\n2. Add hot stock a ladle at a time, stirring until absorbed, for around 20 minutes.\n3. Add peas for the last 5 minutes. Stir in parmesan and rest for 2 minutes."
+    "nutrition_note": "Estimation indicative par personne, non vérifiée en laboratoire.",
+    "method": "1. Faites revenir l’oignon émincé et la courgette coupée en dés dans l’huile. Ajoutez le riz et remuez pendant 1 minute.\n2. Versez le bouillon chaud, louche après louche, en remuant et en attendant son absorption entre chaque ajout, pendant environ 20 minutes.\n3. Ajoutez les petits pois pour les 5 dernières minutes. Incorporez le parmesan et laissez reposer pendant 2 minutes."
   }
 ]

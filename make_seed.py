@@ -13,4 +13,6 @@ recipes=[
 ('courgette-pea-risotto','Courgette & pea risotto',['vegetarian','Italian','seasonal'],2,[(180,'g','risotto rice'),(250,'g','courgette'),(150,'g','peas'),(100,'g','onion'),(700,'ml','vegetable stock'),(30,'g','parmesan'),(15,'ml','olive oil')],[590,20,87,17],'1. Soften chopped onion and diced courgette in oil. Stir in rice for 1 minute.\n2. Add hot stock a ladle at a time, stirring until absorbed, for around 20 minutes.\n3. Add peas for the last 5 minutes. Stir in parmesan and rest for 2 minutes.')]
 out=[]
 for id,title,tags,servings,ingredients,nutrition,method in recipes:out.append(dict(id=id,version=0,title=title,tags=tags,servings=servings,ingredients=[dict(quantity=q,unit=u,name=n) for q,u,n in ingredients],nutrition=dict(zip(['kcal','protein_g','carbs_g','fat_g'],nutrition)),nutrition_note='Illustrative estimate per serving, not laboratory-verified.',method=method))
+from french import recipe
+out=[recipe(r) for r in out]
 Path(__file__).with_name('seed.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
