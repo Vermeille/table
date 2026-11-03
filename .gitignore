@@ -2,3 +2,13 @@ __pycache__/
 .env
 *.env
 *.png
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.enc
+/table-data/
+/data/
+node_modules/
