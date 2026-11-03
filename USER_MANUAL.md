@@ -36,7 +36,7 @@ Ajustez noms, quantités et unités. Cochez les articles déjà en réserve, ajo
 
 ## Choisir les produits et remplir le panier Chronodrive
 
-Dans **Connexions**, enregistrez votre compte Chronodrive et l’identifiant de votre magasin, visible dans son adresse web. Utilisez **Tester la connexion** pour lire le panier actuel sans le modifier. Ne transmettez pas vos identifiants dans la discussion.
+Dans **Connexions**, enregistrez votre compte Chronodrive et choisissez votre magasin dans la liste **Votre magasin Chronodrive**. La liste est chargée depuis le site officiel ; aucun identifiant à chercher vous-même. Utilisez **Tester la connexion** pour lire le panier actuel sans le modifier. Ne transmettez pas vos identifiants dans la discussion.
 
 Après validation des courses, choisissez **Trouver les produits Chronodrive**, puis envoyez la demande. L’assistant recherche les produits et propose les références, formats et nombres de paquets exacts. Il tient compte de vos marques préférées. Vous pouvez demander : « Prends cette marque pour le yaourt » ou « Choisis de plus petits formats pour éviter le gaspillage ». Les articles sans correspondance doivent être résolus avant validation.
 

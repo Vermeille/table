@@ -197,6 +197,10 @@ async def codex_status(id):
         s=_oauth_sessions.get(id)
         if not s:raise HTTPException(404,'Sign-in expired. Start again.')
         return {'status':s.get('status'),'error':s.get('error_message')}
+@app.get('/api/chronodrive/stores')
+async def chronodrive_stores():
+    from chronodrive_stores import stores
+    return await asyncio.to_thread(stores,D.DATA/'chronodrive'/'stores.json')
 @app.post('/api/chronodrive/test')
 async def chronodrive_test():
     items=await chrono('cart');return {'connected':True,'items':items}
@@ -206,6 +210,10 @@ async def chronodrive_setup(req:Request):
     for k in ('email','password','store_id'):
         if p.get(k):old[k]=p[k]
     if not all(old.get(k) for k in ('email','password','store_id')):raise ValueError('Email, password and store ID are required.')
+    from chronodrive_stores import store_id,stores
+    old['store_id']=store_id(old['store_id'])
+    directory=await asyncio.to_thread(stores,D.DATA/'chronodrive'/'stores.json')
+    if old['store_id'] not in {x['id'] for x in directory}:raise ValueError('Ce magasin Chronodrive n’est pas disponible dans la liste actuelle.')
     encrypted_write('chronodrive',old)
     cache=D.DATA/'chronodrive'/'session.json'
     if cache.exists():cache.unlink()

@@ -6,11 +6,12 @@ import re, os, json, secrets, hashlib, base64
 from pathlib import Path
 
 import requests
+from chronodrive_stores import store_id
 
 
 EMAIL    = os.environ["CHRONODRIVE_EMAIL"]
 PASSWORD = os.environ["CHRONODRIVE_PASSWORD"]
-SITE_ID  = os.environ["CHRONODRIVE_STORE_ID"]
+SITE_ID  = store_id(os.environ["CHRONODRIVE_STORE_ID"])
 
 SESSION_FILE = Path(os.getenv("CHRONODRIVE_SESSION_FILE",
                               Path.home() / ".chronodrive-mcp" / "session.json"))
@@ -153,9 +154,7 @@ def ensure_session() -> dict:
 
 def search_products(query: str, session: dict) -> list[dict]:
     hdrs = {
-        **BASE_HEADERS,
-        "Authorization": f"Bearer {session['bearer']}",
-        "X-Api-Key": API_KEY_SEARCH,
+        **_session_headers(session, API_KEY_SEARCH),
         "X-Kamino-User-Consent": "true",
         "X-Kamino-User-Id": session.get("customer_id", ""),
     }
