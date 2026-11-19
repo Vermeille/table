@@ -14,12 +14,12 @@ VOLUME = {'ml': 1, 'cl': 10, 'l': 1000}
 OLIVE_DENSITY_SOURCE = 'https://www.fao.org/fao-who-codexalimentarius/sh-proxy/en/?lnk=1&url=https%3A%2F%2Fworkspace.fao.org%2Fsites%2Fcodex%2FStandards%2FCXS+33-1981%2FCXS_033f.pdf'
 USDA_SOURCE = {'name': 'USDA · FoodData Central', 'url': 'https://fdc.nal.usda.gov/download-datasets/'}
 REFERENCE_WEIGHTS = {
-    'lemon_juice': ('2007', 'pièce', 48, '167747'),
-    'half_lemon_juice': ('2007', 'pièce', 24, '167747'),
-    'lime_juice': ('2030', 'pièce', 44, '168156'),
-    'garlic_clove': ('11000', 'gousse', 3, '169230'),
-    'canned_coconut_milk': ('18041', 'ml', 226 / 236.5882, '170173'),
-    'worcestershire': ('fdc-171610', 'ml', 17 / 14.78676, '171610'),
+    'lemon_juice': ('2007', 'pièce', 48, '167747', 'Jus d’un citron entier'),
+    'half_lemon_juice': ('2007', 'pièce', 24, '167747', 'La moitié du jus d’un citron'),
+    'lime_juice': ('2030', 'pièce', 44, '168156', 'Jus d’un citron vert entier'),
+    'garlic_clove': ('11000', 'gousse', 3, '169230', 'Une gousse d’ail'),
+    'canned_coconut_milk': ('18041', 'ml', 226 / 236.5882, '170173', 'Lait de coco en conserve'),
+    'worcestershire': ('fdc-171610', 'ml', 17 / 14.78676, '171610', 'Sauce Worcestershire liquide'),
 }
 
 
@@ -111,7 +111,15 @@ def search(query):
         else:
             continue
         ranks.append((rank, len(label), label, food_id))
-    return [foods()[food_id] for _, _, _, food_id in sorted(ranks)[:15]]
+    return [
+        {**foods()[food_id], 'reference_weights': [
+            {'weight_reference': key, 'unit': unit, 'grams_per_unit': factor,
+             'description': description, 'url': fdc_url(source_id)}
+            for key, (ref_food, unit, factor, source_id, description) in REFERENCE_WEIGHTS.items()
+            if ref_food == food_id
+        ]}
+        for _, _, _, food_id in sorted(ranks)[:15]
+    ]
 
 
 @lru_cache(maxsize=1)
@@ -182,11 +190,15 @@ def calculate(recipe, *, enrich=False, previous=None):
         # Preserve an explicit unresolved link. For old unlinked ingredients, keep their original shape.
         if food or 'food_id' in ingredient or 'food_id' in earlier:
             result['food_id'] = food['id'] if food else None
-        inherited_factor = earlier.get('grams_per_unit') if earlier.get('unit') == unit and earlier.get('food_id') == food_id else None
-        factor = ingredient.get('grams_per_unit', inherited_factor)
+        # An existing reference is still valid when a recipe scales an otherwise unchanged ingredient.
+        current_food_id = food['id'] if food else None
+        same_food_and_unit = bool(earlier and earlier.get('food_id') == current_food_id
+                                  and earlier['unit'].strip().casefold() == unit_key)
+        previous_weight = earlier if same_food_and_unit else {}
+        factor = ingredient.get('grams_per_unit', previous_weight.get('grams_per_unit'))
         weight_source = None
         reference = None
-        reference_key = ingredient.get('weight_reference')
+        reference_key = ingredient.get('weight_reference', previous_weight.get('weight_reference'))
         if unit_key in MASS:
             grams = quantity * MASS[unit_key]
         elif factor is not None:

@@ -18,6 +18,30 @@ class API(unittest.TestCase):
   self.assertEqual(self.worker('cart','approve-groceries',{}).status_code,403)
   self.assertEqual(self.worker('shopper','save_week',{}).status_code,403)
   self.assertEqual(self.worker('cookbook','help',{}).status_code,200)
+ def test_cookbook_agent_previews_and_scales_recipe_without_losing_sources(self):
+  original=self.worker('cookbook','save_recipe',{
+   'id':'cookbook-nutrition-regression','title':'Lentilles au citron','method':'Mélanger.',
+   'servings':2,'ingredients':[
+    {'name':'Lentilles corail','quantity':200,'unit':'g','food_id':'20535'},
+    {'name':'Citron','quantity':1,'unit':'pièce','food_id':'2007','weight_reference':'lemon_juice'},
+   ],
+  })
+  self.assertEqual(original.status_code,200,original.text)
+  recipe=original.json()
+  edit={**recipe,'servings':3,'ingredients':[
+   {'name':'Lentilles corail','quantity':300,'unit':'g'},
+   {'name':'Citron','quantity':1,'unit':'pièce'},
+  ],'nutrition':{'kcal':1}}
+  preview=self.worker('cookbook','preview_recipe_nutrition',edit)
+  self.assertEqual(preview.status_code,200,preview.text)
+  self.assertEqual(self.worker('shopper','preview_recipe_nutrition',edit).status_code,403)
+  self.assertEqual(D.read('recipe',recipe['id']),recipe)
+  saved=self.worker('cookbook','save_recipe',edit)
+  self.assertEqual(saved.status_code,200,saved.text)
+  self.assertEqual(saved.json()['ingredients'],preview.json()['ingredients'])
+  self.assertEqual(saved.json()['ingredients'][1]['weight_reference'],'lemon_juice')
+  self.assertEqual(saved.json()['nutrition'],preview.json()['nutrition'])
+  self.assertAlmostEqual(saved.json()['nutrition']['kcal'],round((328*3+28.6*.48)/3,1))
  def test_cart_requires_exact_owner_approval(self):
   week='2026-12-07';r=D.recipes()[0];w=D.update_week(week,{'version':0,'slots':[{'day':0,'meal':'dinner','recipe_id':r['id'],'servings':2}]});w=D.approve_week(week,w['version']);w=D.groceries(week,w['version']);w=D.approve_groceries(week,w['version'])
   matches=[{'grocery_id':i['id'],'productId':'product-'+str(n),'name':i['name'],'quantity':1,'brand':'test','size':'pack','price':1,'note':'test'} for n,i in enumerate(w['groceries']['items'])]

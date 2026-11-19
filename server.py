@@ -17,8 +17,9 @@ PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
 HELP={
  'context':'{week?: YYYY-MM-DD}: recipes, preferences, learning, selected week',
  'get_recipe':'{id}', 'search_recipes':'{query}',
- 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:food catalog ID,grams_per_unit?:edible grams per piece or volume unit}],tags:[],method,freezer_ok?,freezer_note?}. Table calculates nutrition from the food catalog; submitted totals are ignored.',
- 'search_foods':'{query}: French food catalog search (Ciqual and selected USDA references), with raw/cooked labels and macros per 100 g.',
+ 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:food catalog ID,grams_per_unit?:edible grams per unit,weight_reference?:existing sourced-weight key}],tags:[],method,freezer_ok?,freezer_note?}. Table retains matching fields for unchanged foods and recalculates nutrition. Use explicit nulls to clear individual fields. Submitted totals are ignored.',
+ 'search_foods':'{query}: French food catalog search (Ciqual and selected USDA references). Results have preparation state, macros per 100 g and any documented reference_weights.',
+ 'preview_recipe_nutrition':'cookbook: {id?:existing recipe ID,servings,ingredients:[same fields as save_recipe]}. Resolves existing links and weights and checks per-serving totals and missing data without writing.',
  'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings,cook_fresh?:true,freezer_lot_id?:ID (only for a lot explicitly chosen by owner)}]}. Returns computed batch and stock assignments.',
  'grocery_base':'shopper: {week}: exact scaled ingredients for approved plan',
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',
@@ -312,7 +313,7 @@ async def worker(action,req:Request):
     token=req.headers.get('Authorization','').removeprefix('Bearer ');role=next((r for r,t in TOKENS.items() if hmac.compare_digest(token,t)),None)
     if not role:raise HTTPException(401,'Invalid worker credential')
     p=await req.json()
-    allowed={'cookbook':{'save_recipe','search_foods'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
+    allowed={'cookbook':{'save_recipe','search_foods','preview_recipe_nutrition'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
     common={'help','context','get_recipe','search_recipes','learn'}
     if action not in common|allowed[role]:raise HTTPException(403,'This assistant cannot perform that action')
     if action=='help':return {k:v for k,v in HELP.items() if k in common|allowed[role]}
@@ -326,6 +327,11 @@ async def worker(action,req:Request):
     if action=='search_recipes':return [r for r in D.recipes() if p['query'].casefold() in json.dumps(r,ensure_ascii=False).casefold()]
     if action=='save_recipe':return D.save_recipe(p)
     if action=='search_foods':return nutrition.search(p['query'])
+    if action=='preview_recipe_nutrition':
+        nutrition.validate_recipe_quantities(p)
+        existing = D.read('recipe',p['id']) if p.get('id') else None
+        ingredients, totals, report = nutrition.calculate(p, previous=existing)
+        return {'ingredients':ingredients, 'nutrition':totals, 'nutrition_report':report}
     if action=='save_week':return D.update_week(p['week'],p)
     if action=='grocery_base':
         w=D.load_week(p['week'])
