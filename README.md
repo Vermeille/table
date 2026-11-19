@@ -21,6 +21,8 @@ Tested with the Hermes runtime serving this deployment, image `nousresearch/herm
 
 `tests/fresh_install.py` provisions all four profiles into an empty Hermes home, then updates them, without prior authentication. This tests profile installation, not an unauthenticated model inference. Real inference necessarily needs a provider connection configured in step 6.
 
+Run `tests/fresh_gateway.sh table:0.1.0` to test a running fresh gateway and the local scheduler in isolated Docker volumes. It checks that the scheduled draft is available without model credentials and that a Table restart keeps the same draft and run.
+
 The bridge shares the Hermes container network namespace and forwards only native authenticated session WebSockets on private port 8644. It enables Stop, tool approval and clarification UI. If the Hermes container is replaced, recreate the bridge. If another app uses 8644, select another bridge port and set `HERMES_OWNER_URL` on Table to match.
 
 ## Architecture

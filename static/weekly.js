@@ -45,6 +45,8 @@ function weeklyOverview() {
             ${q?.active_minutes ? `<p>Environ ${q.active_minutes} min de préparation active sur la semaine.</p>` : ''}
             ${Number.isInteger(q?.nutrition_known) ? `<p>Calories calculées pour ${q.nutrition_known} repas sur ${S.week.slots.length}.</p>` : ''}
             ${job.error ? `<p class="notice">${esc(job.error)}</p>` : ''}
+            ${!S.week.approved && S.preferences.batch?.enabled !== false && q?.cook_days?.length > S.weekly_settings.cook_days
+                ? '<button class="small weekly-retry" data-action="weekly-alternative">Voir un menu avec moins de cuisine</button>' : ''}
             ${!S.week.approved && unmatched > 0 && S.chronodrive_connected ? '<button class="small weekly-retry" data-action="weekly-retry-products">Relancer les produits à trouver</button>' : ''}
             ${warnings.length ? `<details class="weekly-warnings"><summary>${warnings.length === 1 ? '1 point à vérifier' : warnings.length + ' points à vérifier'}</summary>
                 <ul>${warnings.map(warning => `<li>${esc(warning)}</li>`).join('')}</ul></details>` : ''}
@@ -145,6 +147,7 @@ function bindWeekly() {
 }
 
 async function weeklyAction(name) {
+    if (name === 'weekly-alternative') return weeklyAlternative();
     if (name === 'weekly-prepare' || name === 'weekly-retry-products') {
         await flowRequest(name, async () => {
             await api(`weekly/${week}/${name === 'weekly-prepare' ? 'prepare' : 'retry-products'}`, {version:S.week.version});
@@ -153,10 +156,40 @@ async function weeklyAction(name) {
     }
 }
 
+async function weeklyAlternative() {
+    const targetWeek = week;
+    modal('<h2>Moins de jours en cuisine</h2><p id="weekly-alternative-loading" role="status">Table vérifie les recettes et les portions à congeler…</p>');
+    const loading = $('#weekly-alternative-loading');
+    const open = () => $('#modal').open && week === targetWeek && $('#weekly-alternative-loading') === loading;
+    try {
+        const preview = await api(`weekly/${targetWeek}/alternative`);
+        if (!open()) return;
+        const day = new Intl.DateTimeFormat('fr-FR',{weekday:'long'});
+        modal(`<h2>Moins de jours en cuisine</h2>
+            <p>Ce menu prévoit <strong>${preview.quality.cook_days.length} jours de cuisine</strong> et ${preview.quality.frozen_meals} repas à réchauffer.</p>
+            ${preview.quality.active_minutes ? `<p>Environ ${preview.quality.active_minutes} minutes de préparation active.</p>` : ''}
+            <ul class="alternative-meals">${preview.slots.map(meal => `<li>
+                <small>${esc(day.format(dayDate(meal.day)))} · ${mealName(meal.meal)}</small>
+                <strong>${esc(meal.title)}</strong>${meal.reheat ? '<span>Réchauffer</span>' : ''}
+            </li>`).join('')}</ul>
+            <button class="primary" id="use-weekly-alternative">Utiliser ce menu</button>`);
+        $('#use-weekly-alternative').onclick = () => safe(async () => {
+            const slots=preview.slots.map(({day,meal,recipe_id,servings})=>({day,meal,recipe_id,servings}));
+            await api(`week/${targetWeek}/save`,{version:preview.version,slots});
+            $('#modal').close();
+            await refresh();
+            toast('Menu remplacé. Table actualise les courses.');
+        });
+    } catch(error) {
+        if (open()) modal(`<h2>Moins de jours en cuisine</h2><p class="notice">${esc(error.message)}</p>`);
+    }
+}
+
 let pushRegistration;
 let pushKey;
 let pushedDevice;
 let pushLoading = false;
+let pushPending = '';
 const canUsePush = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 function notificationSettings() {
@@ -178,14 +211,21 @@ function paintNotificationDevice() {
         area.innerHTML = '<p>Les notifications sont bloquées. Vous pouvez les autoriser dans les réglages de ce site.</p>';
         return;
     }
+    if (pushPending) {
+        const text = {on:'Activation des notifications…',off:'Désactivation des notifications…',test:'Envoi de la notification d’essai…'};
+        area.innerHTML = `<p role="status">${text[pushPending]}</p>`;
+        return;
+    }
     area.innerHTML = pushedDevice ? `<div class="row">
         <button type="button" data-notification="test">Envoyer un essai</button>
         <button type="button" data-notification="off">Désactiver sur cet appareil</button>
     </div>` : `<button type="button" data-notification="on" ${pushRegistration && pushKey ? '' : 'disabled'}>Activer sur cet appareil</button>`;
     area.querySelectorAll('[data-notification]').forEach(button => button.onclick = () => safe(async () => {
-        button.disabled = true;
+        if (pushPending) return;
+        pushPending = button.dataset.notification;
+        paintNotificationDevice();
         try {
-            if (button.dataset.notification === 'on') {
+            if (pushPending === 'on') {
                 // The browser needs this call during the user gesture that grants permission.
                 const subscription = await pushRegistration.pushManager.subscribe({
                     userVisibleOnly:true, applicationServerKey:pushKey
@@ -198,7 +238,7 @@ function paintNotificationDevice() {
                 }
                 pushedDevice = subscription;
                 toast('Notifications activées sur cet appareil');
-            } else if (button.dataset.notification === 'off') {
+            } else if (pushPending === 'off') {
                 await api('notifications/unsubscribe', {endpoint:pushedDevice.endpoint});
                 await pushedDevice.unsubscribe();
                 pushedDevice = null;
@@ -207,7 +247,11 @@ function paintNotificationDevice() {
                 await api('notifications/test', {endpoint:pushedDevice.endpoint});
                 toast('Notification d’essai envoyée');
             }
+        } catch (error) {
+            if (error instanceof DOMException) throw Error('Le navigateur n’a pas confirmé les notifications. Vérifiez les autorisations du site puis réessayez.');
+            throw error;
         } finally {
+            pushPending = '';
             paintNotificationDevice();
         }
     }));
@@ -223,7 +267,7 @@ async function readNotificationDevice() {
         const encoded=key.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat((4-key.length%4)%4);
         pushKey=Uint8Array.from(atob(encoded),c => c.charCodeAt(0));
         pushRegistration = await navigator.serviceWorker.ready;
-        pushedDevice = await pushRegistration.pushManager.getSubscription();
+        pushedDevice = await pushRegistration.pushManager.getSubscription().catch(() => null);
     })();
     try {
         await pushLoading;

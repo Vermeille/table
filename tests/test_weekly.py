@@ -243,3 +243,21 @@ class WeeklyPreparation(unittest.TestCase):
         self.assertEqual(result['nutrition_known'],1)
         self.assertEqual(result['daily_kcal'],{0:164})
         self.assertEqual(old['nutrition'],{'kcal':999})
+
+    def test_lower_cooking_option_preserves_manual_slots_and_portions_until_confirmed(self):
+        self.configure(people=2,days=[0,1],meals=['dinner'],cook_days=2,no_cook=[2,4])
+        slots=[{'day':day,'meal':meal,'servings':servings,'recipe_id':recipe}
+               for day,meal,servings,recipe in ((0,'lunch',2,'mijote-lentilles-boulgour'),
+                    (1,'dinner',1,'quinoa-pois-chiches-amandes'),(2,'dinner',1,'pates-ragout-aubergine-haricots'),
+                    (4,'lunch',2,'tajine-poulet-patates-douces'))]
+        old=D.update_week(self.week,{'version':0,'slots':slots})
+        weekly.owner_request(self.week,old['version'])
+        self.tick()
+        self.tick()
+        prepared=D.load_week(self.week)
+        proposal=weekly.alternative(self.week)
+        signature=lambda rows: [(s['day'],s['meal'],s['servings']) for s in rows]
+        self.assertEqual(signature(proposal['slots']),signature(slots))
+        self.assertEqual(len(proposal['quality']['cook_days']),2)
+        self.assertFalse(proposal['quality']['no_cook_misses'])
+        self.assertEqual(D.load_week(self.week),prepared)

@@ -20,6 +20,8 @@ Lisez le menu et son plan de cuisson, puis validez les repas, la liste de course
 
 Le bouton **Remplacer** affiche des recettes adaptées au planning et indique si elles ajoutent un jour de cuisine. Pour un plat cuisiné en lot, vous pouvez remplacer tous les repas issus de ce lot en une fois. **Relancer les produits à trouver** cherche uniquement les ingrédients qui restent sans produit dans le brouillon.
 
+Si le brouillon dépasse votre objectif de jours de cuisine, **Voir un menu avec moins de cuisine** présente une variante avec les mêmes créneaux et le même nombre de portions pour chaque repas. **Utiliser ce menu** applique vos nouveaux choix et actualise les courses.
+
 ## Votre carnet de recettes
 
 Ouvrez **Recettes**. Recherchez un plat ou une étiquette, puis ouvrez sa fiche pour consulter ingrédients, préparation et nutrition par portion. Dans l’éditeur, chaque ligne possède un aliment, une quantité et une unité. **Rechercher un aliment** permet de choisir l’aliment correspondant, par exemple la lentille corail sèche ou cuite selon le poids saisi. Pour les pièces, cuillères et volumes, renseignez le poids comestible total en grammes si Table n’a pas de conversion de référence.

@@ -153,7 +153,8 @@ def update_week(id,data,*,agent=False):
         if w.get('weekly_prepared'):
             import batch
             prefs=get(c,'preferences','main')
-            previous=w.get('batch_settings',batch.settings(prefs))
+            preparation=get(c,'weekly',id) or {}
+            previous=w.get('batch_settings') or preparation.get('batch_settings') or batch.settings(prefs)
             batch_config={**(batch.settings(prefs) if prefs.get('batch') else previous),
                           'prefer_frozen_days':previous.get('prefer_frozen_days',[])}
         draft, diary, completed = compose_week(c, id, data, w, batch_config)

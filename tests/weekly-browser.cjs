@@ -123,6 +123,26 @@ const assert = require('node:assert/strict');
         const revision=await state(fresh);
         assert.deepEqual(revision.week.slots.map(s=>s.recipe_id),[recipeId,recipeId]);
         assert.equal(revision.week.approved,false);
+
+        const busyWeek='2030-01-21';
+        const settings=revision.weekly_settings;
+        assert.equal((await post('weekly/settings',{...settings,days:[0,1,2,3],no_cook:[1,3],cook_days:2})).status(),200);
+        assert.equal((await post('week/'+busyWeek+'/save',{version:0,slots:[
+            'mijote-lentilles-boulgour','tofu-gingembre-brocoli-riz','pates-ragout-aubergine-haricots','quinoa-pois-chiches-amandes'
+        ].map((recipe_id,day)=>({day,meal:'lunch',servings:1,recipe_id}))})).status(),200);
+        await page.goto(base+'/?week='+busyWeek);
+        await click('Préparer les courses');
+        await heading('Votre semaine est prête à relire');
+        const before=await state(busyWeek);
+        await click('Voir un menu avec moins de cuisine');
+        await page.locator('.alternative-meals li').nth(3).waitFor();
+        assert.equal((await state(busyWeek)).week.version,before.week.version);
+        await click('Utiliser ce menu');
+        await page.locator('#modal').waitFor({state:'hidden'});
+        const after=await state(busyWeek);
+        assert.equal(after.week.slots.length,4);
+        assert.equal(after.weekly.quality.cook_days.length,2);
+        assert.equal(after.week.approved,false);
         assert.deepEqual(errors,[]);
         console.log('Brouillon, conservation des choix, quantités vérifiées, trois validations, panier de test, préférences et notification sur mobile.');
     } finally {

@@ -156,6 +156,8 @@ async def weekly_retry_products(week,req:Request):
     if not encrypted_read('chronodrive'):
         raise ValueError('Connectez votre compte Chronodrive avant de relancer la recherche.')
     return weekly.retry_products(week,(await req.json())['version'])
+@app.get('/api/weekly/{week}/alternative')
+def weekly_alternative(week):return weekly.alternative(week)
 @app.post('/api/weekly/{week}/seen')
 def weekly_seen(week):return weekly.mark_seen(week)
 @app.get('/api/notifications/key')

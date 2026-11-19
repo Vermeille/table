@@ -155,6 +155,12 @@ def slot_keys(config):
     return [(day, meal) for day in config['days'] for meal in config['meals']]
 
 
+def expected_slots(job):
+    if 'slot_template' in job:
+        return {(slot['day'],slot['meal']):slot['servings'] for slot in job['slot_template']}
+    return {key:job['settings']['people'] for key in slot_keys(job['settings'])}
+
+
 def recipe_features(recipe):
     ingredients = [normalized(item['name']) for item in recipe.get('ingredients', [])]
     title = normalized(recipe['title'])
@@ -276,7 +282,7 @@ def context(c, job):
         previous_gaps=[item['name'] for item in ((previous or {}).get('groceries') or {}).get('items',[]) if item['id'] in unmet]
     return {'week':week,'household':config,'preferences':D.get(c,'preferences','main'),
             'learning':D.get(c,'learning','planner')['text'],
-            'slots':[{'day':day,'meal':meal,'servings':config['people']} for day,meal in slot_keys(config)],
+            'slots':[{'day':day,'meal':meal,'servings':servings} for (day,meal),servings in expected_slots(job).items()],
             'freezer':{'settings':job['batch_settings'],'available_portions':freezer['available_portions'],
                        'automatic_portions':freezer['automatic_portions'],
                        'lots':[{'recipe_id':lot['recipe']['id'],'title':lot['recipe']['title'],
@@ -364,11 +370,11 @@ def ensure_phase(c, week, request_id, phase):
 
 def candidate(c, job, w, slots):
     config = job['settings']
-    expected = set(slot_keys(config))
+    expected = expected_slots(job)
     if (not isinstance(slots,list) or len(slots) != len(expected) or any(
             not isinstance(s,dict) or type(s.get('day')) is not int or
-            (s['day'],s.get('meal')) not in expected or type(s.get('servings')) is not int or
-            s['servings'] != config['people'] or s.get('freezer_lot_id')
+            (s['day'],s.get('meal')) not in expected or type(s.get('servings')) not in (int,float) or
+            s['servings'] != expected[(s['day'],s['meal'])] or s.get('freezer_lot_id')
             for s in slots)):
         raise ValueError('Utilisez chaque créneau demandé exactement une fois avec le nombre de personnes prévu.')
     draft, _, _ = D.compose_week(c,job['id'],{'slots':slots},w,job['batch_settings'])
@@ -396,7 +402,6 @@ def propose(week, request_id, plans):
 
 
 def stock_choices(facts, slots, config):
-    portions = config['people']
     left = facts['freezer']['automatic_portions']
     groups = {}
     for lot in sorted(facts['freezer']['lots'],key=lambda lot:(lot['frozen_on'],lot['recipe_id'])):
@@ -407,8 +412,9 @@ def stock_choices(facts, slots, config):
     no_cook=set(config['no_cook'])
     priorities = sorted(slots,key=lambda slot:(slot[0] not in no_cook,slot[0],batch.MEAL_ORDER[slot[1]]))
     for day,meal in priorities:
-        if left < portions:
-            break
+        portions = slots[(day,meal)]
+        if left < portions or portions!=int(portions):
+            continue
         portable = meal=='lunch' and day in config['portable']
         group=next((g for g in groups.values() if g['available']>=portions and (not portable or g['portable'])),None)
         if group:
@@ -423,7 +429,7 @@ def fallback(c, job, w, facts=None):
     config = job['settings']
     facts = facts if facts is not None else context(c,job)
     pool = [r for r in facts['recipes'] if not r['freezer_only']]
-    slots = slot_keys(config)
+    slots = expected_slots(job)
     stock = stock_choices(facts,slots,config)
     previous_gaps={normalized(item) for item in facts['previous_grocery_gaps']}
     gaps_by_recipe={r['id']:len(previous_gaps & {normalized(i) for i in r['ingredients']}) for r in pool}
@@ -431,7 +437,8 @@ def fallback(c, job, w, facts=None):
         raise ValueError('Le carnet et le stock ne suffisent pas pour les exclusions de votre foyer.')
     pool.sort(key=lambda r:(gaps_by_recipe[r['id']],r['id'] in facts['last_week'], not r['nutrition'].get('kcal'),
                             not r['freezer_ok'], not r['legumes'], -r['vegetables'], r['id']))
-    starting_days = [day for day in config['days'] if day not in config['no_cook']] or config['days']
+    planned_days=sorted({day for day,_ in slots})
+    starting_days = [day for day in planned_days if day not in config['no_cook']] or planned_days
     candidate_days = list(itertools.combinations(starting_days,min(len(starting_days),config['cook_days'])))[:12]
     best = None
     for offset in range(max(1,min(len(pool),8))):
@@ -441,7 +448,7 @@ def fallback(c, job, w, facts=None):
             for day,meal in slots:
                 portable = meal=='lunch' and day in config['portable']
                 eligible = [r for r in pool if not portable or r['portable']] or pool
-                slot = {'day':day,'meal':meal,'servings':config['people']}
+                slot = {'day':day,'meal':meal,'servings':slots[(day,meal)]}
                 if (day,meal) in stock:
                     chosen.append({**slot,'recipe_id':stock[(day,meal)]})
                     used[stock[(day,meal)]]+=1
@@ -480,6 +487,34 @@ def agent_context(c, job, w):
         'assessment':baseline['quality']
     }
     return facts
+
+
+def alternative(week):
+    with D.db() as c:
+        w=D.get(c,'week',D.week_id(week))
+        job=D.get(c,'weekly',week)
+        if not w or not w['slots'] or not job or w.get('weekly_prepared')!=job['request_id']:
+            raise ValueError('Préparez d’abord le brouillon de cette semaine.')
+        D.editable(w)
+        if w['approved']:
+            raise ValueError('Ce planning a déjà été validé.')
+        current=assess(w,job['settings'],strict=False)
+        batch_config=w.get('batch_settings') or job.get('batch_settings') or batch.settings(D.get(c,'preferences','main'))
+        planning={**job,'slot_template':batch.ordered(w['slots']),'batch_settings':batch_config}
+        facts=context(c,planning)
+        items=cart_review.required(w)
+        missing=(w.get('cart') or {}).get('unmatched',[])
+        facts['previous_grocery_gaps'] += [items[key]['name'] for key in missing if key in items]
+        proposal=fallback(c,planning,w,facts)
+        quality=proposal['quality']
+        if len(quality['cook_days'])>=len(current['cook_days']) or quality['no_cook_misses']:
+            raise ValueError('Aucun autre menu ne réduit les jours de cuisine avec vos réglages actuels.')
+        slots=[]
+        for slot in batch.ordered(proposal['week']['slots']):
+            task=proposal['week'].get('batch',{}).get(batch.key(slot),{})
+            slots.append({**{field:slot[field] for field in ('day','meal','recipe_id','servings')},
+                          'title':slot['recipe']['title'],'reheat':task.get('source') in batch.ACTIVE_SOURCES})
+        return {'version':w['version'],'quality':quality,'current':current,'slots':slots}
 
 
 def grocery_signature(item):
@@ -523,6 +558,7 @@ def revise(c, old, draft):
     draft['weekly_prepared']=request_id
     draft=D.put(c,'week',week,draft,old['version'])
     D.put(c,'weekly',week,{'request_id':request_id,'status':'shopping','origin':'existing','settings':config,
+                           'batch_settings':draft.get('batch_settings') or previous.get('batch_settings'),
                            'base_version':draft['version'],'draft_version':draft['version'],'quality':quality,
                            'revision':True,'seen':True,'created':time.time(),'error':''},previous['version'])
     return draft
