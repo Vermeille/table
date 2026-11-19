@@ -17,8 +17,8 @@ PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
 HELP={
  'context':'{week?: YYYY-MM-DD}: recipes, preferences, learning, selected week',
  'get_recipe':'{id}', 'search_recipes':'{query}',
- 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:Ciqual ID,grams_per_unit?:edible grams per piece or volume unit}],tags:[],method,freezer_ok?,freezer_note?}. Table calculates nutrition from Ciqual; submitted totals are ignored.',
- 'search_foods':'{query}: French Ciqual food search, with raw/cooked labels and macros per 100 g.',
+ 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:food catalog ID,grams_per_unit?:edible grams per piece or volume unit}],tags:[],method,freezer_ok?,freezer_note?}. Table calculates nutrition from the food catalog; submitted totals are ignored.',
+ 'search_foods':'{query}: French food catalog search (Ciqual and selected USDA references), with raw/cooked labels and macros per 100 g.',
  'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings,cook_fresh?:true,freezer_lot_id?:ID (only for a lot explicitly chosen by owner)}]}. Returns computed batch and stock assignments.',
  'grocery_base':'shopper: {week}: exact scaled ingredients for approved plan',
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',

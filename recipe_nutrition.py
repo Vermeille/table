@@ -12,6 +12,19 @@ SOURCE = {'name': 'Anses · Ciqual 2025', 'url': 'https://doi.org/10.57745/RDMHW
 MASS = {'mg': .001, 'g': 1, 'kg': 1000}
 VOLUME = {'ml': 1, 'cl': 10, 'l': 1000}
 OLIVE_DENSITY_SOURCE = 'https://www.fao.org/fao-who-codexalimentarius/sh-proxy/en/?lnk=1&url=https%3A%2F%2Fworkspace.fao.org%2Fsites%2Fcodex%2FStandards%2FCXS+33-1981%2FCXS_033f.pdf'
+USDA_SOURCE = {'name': 'USDA · FoodData Central', 'url': 'https://fdc.nal.usda.gov/download-datasets/'}
+REFERENCE_WEIGHTS = {
+    'lemon_juice': ('2007', 'pièce', 48, '167747'),
+    'half_lemon_juice': ('2007', 'pièce', 24, '167747'),
+    'lime_juice': ('2030', 'pièce', 44, '168156'),
+    'garlic_clove': ('11000', 'gousse', 3, '169230'),
+    'canned_coconut_milk': ('18041', 'ml', 226 / 236.5882, '170173'),
+    'worcestershire': ('fdc-171610', 'ml', 17 / 14.78676, '171610'),
+}
+
+
+def fdc_url(fdc_id):
+    return f'https://fdc.nal.usda.gov/food-details/{fdc_id}/nutrients'
 
 # Reviewed against the ingredients and method of the unmodified starter recipes.
 # An unmatched line still appears in shopping and is flagged in the recipe.
@@ -47,9 +60,19 @@ def identity(text):
 @lru_cache(maxsize=1)
 def foods():
     rows = json.loads((ROOT/'catalog'/'ciqual-2025.json').read_text(encoding='utf-8'))
-    return {food_id: {'id': food_id, 'name': name, 'group': group,
-                      'per_100g': dict(zip(MACROS, values))}
-            for food_id, name, group, *values in rows}
+    catalog = {food_id: {'id': food_id, 'name': name, 'group': group,
+                         'per_100g': dict(zip(MACROS, values)), 'source': SOURCE}
+               for food_id, name, group, *values in rows}
+    supplemental = json.loads((ROOT/'catalog'/'usda-sr-supplement.json').read_text(encoding='utf-8'))
+    for row in supplemental:
+        food_id = 'fdc-' + row['id']
+        nutrients = row['nutrients']
+        catalog[food_id] = {'id':food_id, 'name':row['name_fr'], 'group':'SR Legacy',
+                            'source':USDA_SOURCE, 'reference_url':fdc_url(row['id']),
+                            'per_100g':{'kcal':nutrients['1008'], 'protein_g':nutrients['1003'],
+                                       'carbs_g':round(nutrients['1005'] - nutrients['1079'], 2),
+                                       'fat_g':nutrients['1004']}}
+    return catalog
 
 
 @lru_cache(maxsize=1)
@@ -131,6 +154,7 @@ def calculate(recipe, *, enrich=False, previous=None):
     totals = {key: [0.0, 0.0] for key in MACROS}
     missing = dict.fromkeys(MACROS, 0)
     traces = set()
+    sources = {}
     for index, ingredient in enumerate(recipe['ingredients']):
         if not isinstance(ingredient, dict):
             raise ValueError('Chaque ingrédient doit être saisi sur une ligne.')
@@ -153,7 +177,7 @@ def calculate(recipe, *, enrich=False, previous=None):
         else:
             food_id = overrides.get(index) or exact_foods().get(identity(name))
         if food_id is not None and (not isinstance(food_id, (str, int)) or str(food_id) not in foods()):
-            raise ValueError('Sélectionnez une référence valide dans Ciqual.')
+            raise ValueError('Sélectionnez une référence valide dans le catalogue.')
         food = foods().get(str(food_id))
         # Preserve an explicit unresolved link. For old unlinked ingredients, keep their original shape.
         if food or 'food_id' in ingredient or 'food_id' in earlier:
@@ -161,6 +185,8 @@ def calculate(recipe, *, enrich=False, previous=None):
         inherited_factor = earlier.get('grams_per_unit') if earlier.get('unit') == unit and earlier.get('food_id') == food_id else None
         factor = ingredient.get('grams_per_unit', inherited_factor)
         weight_source = None
+        reference = None
+        reference_key = ingredient.get('weight_reference')
         if unit_key in MASS:
             grams = quantity * MASS[unit_key]
         elif factor is not None:
@@ -169,6 +195,14 @@ def calculate(recipe, *, enrich=False, previous=None):
             result['grams_per_unit'] = factor
             grams = quantity * factor
             weight_source = 'entered'
+        elif reference_key is not None:
+            match = REFERENCE_WEIGHTS.get(reference_key) if isinstance(reference_key, str) else None
+            if not match or not food or match[:2] != (food['id'], unit_key):
+                raise ValueError('Le poids de référence ne correspond pas à cet aliment et à cette unité.')
+            result['weight_reference'] = reference_key
+            grams = quantity * match[2]
+            weight_source = 'reference'
+            reference = {'name':'Poids indicatif USDA', 'url':fdc_url(match[3])}
         elif food and food['id'] == '17270' and unit_key in VOLUME:
             grams = quantity * VOLUME[unit_key] * .912
             weight_source = 'olive_density'
@@ -177,6 +211,8 @@ def calculate(recipe, *, enrich=False, previous=None):
         if grams is not None and grams > 1_000_000:
             raise ValueError('La quantité totale d’un ingrédient ne peut dépasser 1 000 kg.')
         values = food['per_100g'] if food and grams is not None else {}
+        if food:
+            sources[food['source']['name']] = food['source']
         for key in MACROS:
             value = values.get(key)
             if value is None:
@@ -189,8 +225,9 @@ def calculate(recipe, *, enrich=False, previous=None):
                 totals[key][1] += grams * high / 100
         rows.append({'food': food['name'] if food else None, 'food_id': food['id'] if food else None,
                      'grams': round(grams, 4) if grams is not None else None, 'weight_source': weight_source,
+                     'weight_reference': reference, 'food_reference_url': food.get('reference_url') if food else None,
                      'problem': 'food' if not food else 'weight' if grams is None else
-                                'data' if any(value is None for value in values.values()) else None})
+                                'data' if any(values.get(key) is None for key in MACROS) else None})
         ingredients.append(result)
 
     servings = recipe['servings']
@@ -208,7 +245,8 @@ def calculate(recipe, *, enrich=False, previous=None):
         if not has_range and key not in traces:
             numeric[key] = round(low, 1 if key == 'kcal' else 2)
         values[key] = value
-    report = {'source': SOURCE, 'rows': rows, 'values': values, 'subtotals': subtotals, 'missing': missing,
+    food_sources = list(sources.values()) or [SOURCE]
+    report = {'source': food_sources[0], 'sources': food_sources, 'rows': rows, 'values': values, 'subtotals': subtotals, 'missing': missing,
               'calculated': sum(row['problem'] is None for row in rows), 'total': len(rows)}
     return ingredients, numeric, report
 

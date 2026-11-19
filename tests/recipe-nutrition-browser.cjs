@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
     await page.locator('[name=method]').fill('Cuire les lentilles sèches, puis mélanger avec les lentilles déjà cuites.');
     await fill(0,'name','lentilles corail');
     await fill(0,'quantity','200');
-    await choose(0).getByRole('button',{name:'Rechercher dans Ciqual'}).click();
+    await choose(0).getByRole('button',{name:'Rechercher un aliment'}).click();
     await choose(0).getByRole('button',{name:/^Lentille corail, sèche/}).click();
 
     await button('+ Ajouter un ingrédient').click();
@@ -53,6 +53,20 @@ const assert = require('node:assert/strict');
     assert.equal(recipe.nutrition.kcal,244.5);
     assert.deepEqual(recipe.ingredients.map(i=>i.food_id),['20535','20589','18041']);
     assert.equal(recipe.ingredients[2].grams_per_unit,1);
+    const archived = await page.request.post(base+'/api/recipes', {data:{
+        title:'Haricots noirs au citron',servings:2,method:'Mélanger.',
+        ingredients:[
+            {name:'Haricots noirs cuits',quantity:200,unit:'g',food_id:'fdc-173735'},
+            {name:'Citron',quantity:1,unit:'pièce',food_id:'2007',weight_reference:'lemon_juice'},
+        ],
+    }});
+    assert.equal(archived.status(),200);
+    await page.reload();
+    await page.locator('.nav [data-view=cookbook]').click();
+    await page.getByRole('button',{name:/Haricots noirs au citron/}).click();
+    await modal.getByRole('link',{name:/Poids indicatif USDA/}).waitFor();
+    await modal.getByRole('link',{name:/USDA · FoodData Central/}).waitFor();
+    await modal.getByRole('link',{name:/Anses · Ciqual 2025/}).waitFor();
     assert.deepEqual(errors,[]);
     await browser.close();
     console.log('PASS: structured editor, dry/cooked search, volume without weight, explicit conversion, recalculated portions, persisted nutrition and mobile layout.');

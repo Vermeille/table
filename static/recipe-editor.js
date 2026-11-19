@@ -6,7 +6,7 @@ const formatNutrition = n => nutritionFormat.format(n);
 const rowIssues = {
     food:'Choisir un aliment',
     weight:'Renseigner le poids comestible',
-    data:'Valeurs manquantes dans Ciqual',
+    data:'Valeurs manquantes dans la source',
 };
 const oliveDensityUrl = 'https://www.fao.org/fao-who-codexalimentarius/sh-proxy/en/?lnk=1&url=https%3A%2F%2Fworkspace.fao.org%2Fsites%2Fcodex%2FStandards%2FCXS+33-1981%2FCXS_033f.pdf';
 
@@ -29,7 +29,8 @@ function recipeNutrition(report) {
     const subtotals = Object.entries(report.subtotals || {});
     return `<section class="recipe-nutrition">
         <div class="row between"><strong>Nutrition par portion</strong>
-            <a href="${esc(report.source.url)}" target="_blank" rel="noreferrer">${esc(report.source.name)} ↗</a></div>
+            <div class="row">${(report.sources || [report.source]).map(source =>
+                `<a href="${esc(source.url)}" target="_blank" rel="noreferrer">${esc(source.name)} ↗</a>`).join('')}</div></div>
         <div class="nutrition">${Object.entries(nutritionLabels).map(([key, unit]) =>
             `<div><b>${nutritionValue(report.values[key], key)}</b><span>${unit}</span></div>`).join('')}</div>
         ${incomplete ? `<p>${report.calculated}/${report.total} ingrédients entièrement calculés. Les valeurs incomplètes apparaissent avec un tiret.</p>` : ''}
@@ -44,7 +45,9 @@ function ingredientNutrition(row, scale = 1) {
     const weight = row.grams === null ? '' : ` · ${formatNutrition(row.grams * scale)} g comestibles`;
     const conversion = row.weight_source === 'olive_density'
         ? ` <a href="${oliveDensityUrl}" target="_blank" rel="noreferrer">Densité de référence ↗</a>` : '';
-    return `${row.food ? `<span>${esc(row.food)}${weight}</span>${conversion}` : ''}
+    const foodReference = row.food_reference_url ? ` <a href="${esc(row.food_reference_url)}" target="_blank" rel="noreferrer">Fiche USDA ↗</a>` : '';
+    const weightReference = row.weight_reference ? ` <a href="${esc(row.weight_reference.url)}" target="_blank" rel="noreferrer">${esc(row.weight_reference.name)} ↗</a>` : '';
+    return `${row.food ? `<span>${esc(row.food)}${weight}</span>${conversion}${foodReference}${weightReference}` : ''}
         ${row.problem ? `<span class="ingredient-issue">${rowIssues[row.problem]}</span>` : ''}`;
 }
 
@@ -95,7 +98,7 @@ function editRecipe(original) {
             element.innerHTML = ingredientNutrition(row);
             const editor = element.closest('[data-ingredient]');
             editor.querySelector('[data-unlink-food]').hidden = !row?.food_id;
-            editor.querySelector('[data-food-search]').textContent = row?.food_id ? 'Changer la référence' : 'Rechercher dans Ciqual';
+            editor.querySelector('[data-food-search]').textContent = row?.food_id ? 'Changer la référence' : 'Rechercher un aliment';
         });
     }
 
@@ -137,7 +140,7 @@ function editRecipe(original) {
             <div class="ingredient-meta">
                 <p data-ingredient-status>${ingredientNutrition(preview?.rows[index])}</p>
                 <div class="row">
-                    <button type="button" class="small" data-food-search>Rechercher dans Ciqual</button>
+                    <button type="button" class="small" data-food-search>Rechercher un aliment</button>
                     <button type="button" class="small" data-unlink-food hidden>Dissocier</button>
                 </div>
                 <label class="ingredient-weight" ${massUnits.has(item.unit.trim().toLowerCase()) ? 'hidden' : ''}>
@@ -163,16 +166,19 @@ function editRecipe(original) {
                 const field = input.dataset.field;
                 if (field === 'edible_weight') {
                     item.grams_per_unit = input.value && +item.quantity > 0 ? +input.value / +item.quantity : null;
+                    if (item.grams_per_unit) delete item.weight_reference;
                     requestPreview();
                     return;
                 }
                 if (field === 'name' && searchText(item.name.trim()) !== searchText(input.value.trim())) {
                     delete item.food_id;
                     item.grams_per_unit = null;
+                    delete item.weight_reference;
                     row.querySelector('[data-field=edible_weight]').value = '';
                 }
                 if (field === 'unit' && item.unit !== input.value) {
                     item.grams_per_unit = null;
+                    delete item.weight_reference;
                     row.querySelector('[data-field=edible_weight]').value = '';
                     row.querySelector('.ingredient-weight').hidden = massUnits.has(input.value.trim().toLowerCase());
                 }
@@ -189,6 +195,7 @@ function editRecipe(original) {
         const unlink = row.querySelector('[data-unlink-food]');
         if (unlink) unlink.onclick = () => {
             item.food_id = null;
+            delete item.weight_reference;
             renderAndPreview();
         };
     }
@@ -196,7 +203,7 @@ function editRecipe(original) {
     function searchForIngredient(row, item, index) {
         const container = row.querySelector('[data-food-results]');
         container.innerHTML = `<div class="row food-search">
-            <input aria-label="Aliment à rechercher dans Ciqual" value="${esc(item.name)}" maxlength="100">
+            <input aria-label="Aliment à rechercher" value="${esc(item.name)}" maxlength="100">
             <button type="button" class="small">Rechercher</button>
             <button type="button" class="small" data-close-search>Fermer</button></div>
             <div class="food-results" aria-live="polite"></div>`;
@@ -206,17 +213,20 @@ function editRecipe(original) {
         async function find() {
             const id = ++sequence;
             if (input.value.trim().length < 2) {results.textContent = 'Saisissez au moins deux caractères.'; return;}
-            results.textContent = 'Recherche dans Ciqual…';
+            results.textContent = 'Recherche…';
             try {
                 const foods = await api('foods?q=' + encodeURIComponent(input.value));
                 if (!alive() || !results.isConnected || id !== sequence) return;
                 results.innerHTML = foods.length ? foods.map((food, n) => `<button type="button" data-food="${n}">
                     <strong>${esc(food.name)}</strong>
-                    <small>${typeof food.per_100g.kcal === 'number' ? formatNutrition(food.per_100g.kcal) + ' kcal / 100 g' : 'Énergie non chiffrée'} · ${esc(food.group)}</small></button>`
+                    <small>${typeof food.per_100g.kcal === 'number' ? formatNutrition(food.per_100g.kcal) + ' kcal / 100 g' : 'Énergie non chiffrée'} · ${esc(food.source?.name || food.group)}</small></button>`
                 ).join('') : '<p>Aucun résultat. Essayez un nom plus court ou précisez cru, cuit ou égoutté.</p>';
                 results.querySelectorAll('[data-food]').forEach(button => button.onclick = () => {
                     const food = foods[+button.dataset.food];
-                    if (item.food_id && item.food_id !== food.id) item.grams_per_unit = null;
+                    if (item.food_id && item.food_id !== food.id) {
+                        item.grams_per_unit = null;
+                        delete item.weight_reference;
+                    }
                     item.food_id = food.id;
                     if (!item.name.trim()) item.name = food.name;
                     renderAndPreview(() => document.querySelector(`[data-ingredient="${index}"] [data-field=quantity]`).focus());

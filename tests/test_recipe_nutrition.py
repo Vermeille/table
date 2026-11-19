@@ -8,7 +8,7 @@ import recipe_nutrition as N
 
 class CiqualNutrition(unittest.TestCase):
     def test_catalog_and_raw_cooked_search(self):
-        self.assertEqual(len(N.foods()), 3484)
+        self.assertEqual(sum(not id.startswith('fdc-') for id in N.foods()), 3484)
         dry, cooked, *_ = N.search('lentilles corail')
         self.assertEqual({dry['id'], cooked['id']}, {'20535', '20589'})
         self.assertEqual(N.search('lentilles corail sèches')[0]['id'], '20535')
@@ -44,6 +44,25 @@ class CiqualNutrition(unittest.TestCase):
         self.assertEqual(values, {})
         self.assertEqual(report['values'], {})
         self.assertEqual(report['subtotals']['kcal']['low'], 164)
+
+    def test_usda_cooked_black_beans_use_available_carbohydrate(self):
+        _, values, report = N.calculate({'servings':2,'ingredients':[
+            {'name':'haricots noirs cuits','quantity':200,'unit':'g','food_id':'fdc-173735'}]})
+        self.assertEqual(values, {'kcal':132,'protein_g':8.86,'carbs_g':15.01,'fat_g':.54})
+        self.assertEqual(report['sources'], [N.USDA_SOURCE])
+        self.assertTrue(report['rows'][0]['food_reference_url'].endswith('/173735/nutrients'))
+
+    def test_documented_reference_weight_can_be_replaced_by_measurement(self):
+        ingredient = {'name':'citron','quantity':1,'unit':'pièce','food_id':'2007','weight_reference':'half_lemon_juice'}
+        _, _, report = N.calculate({'servings':2,'ingredients':[ingredient]})
+        self.assertEqual(report['rows'][0]['grams'], 24)
+        self.assertEqual(report['rows'][0]['weight_source'], 'reference')
+        ingredients, _, report = N.calculate({'servings':2,'ingredients':[{**ingredient,'grams_per_unit':15}]})
+        self.assertEqual(report['rows'][0]['grams'], 15)
+        self.assertEqual(report['rows'][0]['weight_source'], 'entered')
+        self.assertNotIn('weight_reference', ingredients[0])
+        with self.assertRaisesRegex(ValueError, 'ne correspond pas'):
+            N.calculate({'servings':2,'ingredients':[{**ingredient,'food_id':'13125'}]})
 
     def test_qualitative_and_bounded_values_are_not_replaced_with_zero(self):
         ingredients = [{'name':'huile d’olive', 'quantity':20, 'unit':'ml'},
