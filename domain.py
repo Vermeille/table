@@ -55,7 +55,20 @@ def save_recipe(data):
         if not i.get('name') or not isinstance(i.get('quantity'),(int,float)) or i['quantity']<=0 or not isinstance(i.get('unit'),str):raise ValueError('Every ingredient needs a positive quantity, name and unit.')
     if not isinstance(data.get('tags',[]),list) or not isinstance(data.get('nutrition',{}),dict):raise ValueError('Invalid tags or nutrition.')
     data.setdefault('nutrition',{});data.setdefault('tags',[]);data['nutrition_note']=data.get('nutrition_note','Estimation par personne, à vérifier selon vos besoins alimentaires.')
-    with db() as c:r=put(c,'recipe',id,data,data.get('version',0))
+    with db() as c:
+        old = get(c, 'recipe', id)
+        if 'freezer_ok' not in data and old:
+            # Older clients preserve metadata when the recipe itself is unchanged.
+            if all(data.get(field) == old.get(field) for field in ('method', 'ingredients')):
+                for field in ('freezer_ok', 'freezer_note'):
+                    if field in old: data[field] = old[field]
+        if 'freezer_ok' in data and type(data['freezer_ok']) is not bool:
+            raise ValueError('Précisez si le plat complet se congèle bien.')
+        if data.get('freezer_ok'):
+            data['freezer_note'] = str(data.get('freezer_note', '')).strip()[:500]
+        else:
+            data.pop('freezer_note', None)
+        r = put(c, 'recipe', id, data, data.get('version', 0))
     write_markdown(r);return r
 def week_id(id):
     d=datetime.date.fromisoformat(id)
@@ -66,30 +79,67 @@ def load_week(id):return read('week',week_id(id)) or blank_week(id)
 def editable(w):
     if w.get('cart',{} ) and w['cart'].get('status')=='filling':raise ValueError('Cart filling is active. Wait for it to finish before editing this week.')
 def update_week(id,data):
+    import batch
     with db() as c:
         w=get(c,'week',week_id(id)) or blank_week(id);editable(w)
         if w['version']!=data['version']:raise ValueError('The week changed. Reload before saving.')
+        diary = batch.kitchen(c, id)
+        completed = {key for key, event in diary['entries'].items() if event['action'] != 'skip'}
+        originals = {batch.key(slot): slot for slot in w['slots']}
         slots=[]
         for s in data['slots']:
             day=int(s['day']);meal=s.get('meal','dinner');servings=float(s['servings'])
             if day not in range(7) or meal not in ('breakfast','lunch','dinner') or not 0<servings<=100:raise ValueError('Invalid meal slot.')
-            r=get(c,'recipe',s['recipe_id'])
-            if not r:raise ValueError('Recipe no longer exists.')
             if any(x['day']==day and x['meal']==meal for x in slots):raise ValueError('Duplicate meal slot.')
-            slots.append({'day':day,'meal':meal,'recipe_id':r['id'],'servings':servings,'recipe':r})
-        return put(c,'week',id,{'slots':slots,'approved':False,'groceries':None,'cart':None},w['version'])
+            slot_key = f'{day}-{meal}'
+            if slot_key in completed:
+                original = originals[slot_key]
+                if original['recipe_id'] != s['recipe_id'] or original['servings'] != servings:
+                    raise ValueError('Ce repas a déjà été enregistré dans le suivi du congélateur.')
+                slots.append(original)
+                continue
+            recipe = batch.find_slot_recipe(c, s)
+            if not recipe:raise ValueError('Recipe no longer exists.')
+            slot = {'day':day,'meal':meal,'recipe_id':recipe['id'],'servings':servings,'recipe':recipe}
+            if s.get('freezer_lot_id'):
+                slot['freezer_lot_id'] = s['freezer_lot_id']
+            elif s.get('cook_fresh') is True:
+                slot['cook_fresh'] = True
+            slots.append(slot)
+        if not completed <= {batch.key(slot) for slot in slots}:
+            raise ValueError('Un repas déjà enregistré doit rester dans le planning.')
+        new = {'slots':slots,'approved':False,'groceries':None,'cart':None}
+        config = batch.settings(get(c, 'preferences', 'main'))
+        if config['enabled'] or completed or any(slot.get('freezer_lot_id') for slot in slots):
+            new['batch'] = batch.build(c, id, slots, config, w, diary['entries'])
+            new['batch_settings'] = config
+        if len(completed) != len(diary['entries']):
+            diary['entries'] = {key: diary['entries'][key] for key in completed}
+            put(c, 'kitchen', id, diary, diary['version'])
+        if completed:
+            new['already_cooked'] = [key for key in completed if diary['entries'][key]['action'] == 'freeze']
+        return put(c,'week',id,new,w['version'])
 def approve_week(id,version):
+    import batch
     with db() as c:
         w=get(c,'week',id);editable(w or {})
         if not w or not w['slots']:raise ValueError('Add meals before approving this week.')
         if w['approved']:raise ValueError('This week is already approved.')
+        if w['version'] != version:raise ValueError('This item changed. Reload before saving.')
+        if w.get('batch'):batch.validate_plan(c, w)
         w['approved']=True;w['approved_at']=datetime.datetime.now(datetime.timezone.utc).isoformat();w['groceries']=None;w['cart']=None
+        if w.get('batch') and not aggregate(w):
+            w['groceries']={'items':[], 'approved':False}
         # Recipe snapshots in slots preserve the exact approved recipes.
         return put(c,'week',id,w,version)
 def aggregate(w):
+    import batch
     items={}
     for s in w['slots']:
-        r=s['recipe'];factor=s['servings']/r['servings']
+        key = batch.key(s)
+        task = w.get('batch', {}).get(key, {})
+        if task.get('source') in batch.ACTIVE_SOURCES or key in w.get('already_cooked', []):continue
+        r=s['recipe'];factor=task.get('quantity', s['servings'])/r['servings']
         for i in r['ingredients']:
             unit=i['unit'].strip().lower();n=i['quantity']*factor
             if unit=='kg':unit='g';n*=1000
@@ -116,7 +166,14 @@ def approve_groceries(id,version):
         editable(w);w['groceries']['approved']=True;w['cart']=None
         return put(c,'week',id,w,version)
 def preferences(data):
-    with db() as c:return put(c,'preferences','main',data,data.get('version'))
+    import batch
+    with db() as c:
+        saved = get(c, 'preferences', 'main')
+        if 'batch' in data:
+            data['batch'] = batch.normalize_settings(data['batch'])
+        elif saved and 'batch' in saved:
+            data['batch'] = saved['batch']
+        return put(c,'preferences','main',data,data.get('version'))
 def learn(role,text,version=None):
     if role not in ROLES:raise ValueError('Unknown skill.')
     if len(text)>16000:raise ValueError('Keep learned guidance under 16,000 characters.')

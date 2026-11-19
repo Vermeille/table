@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import httpx
 from cryptography.fernet import Fernet
 import domain as D
+import batch
 import cart_review
 import cart_fill
 from french import error as french_error
@@ -16,7 +17,7 @@ HELP={
  'context':'{week?: YYYY-MM-DD}: recipes, preferences, learning, selected week',
  'get_recipe':'{id}', 'search_recipes':'{query}',
  'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit}],tags:[],nutrition:{kcal,protein_g,carbs_g,fat_g},method, nutrition_note?}',
- 'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings}]}',
+ 'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings,cook_fresh?:true,freezer_lot_id?:ID (only for a lot explicitly chosen by owner)}]}. Returns computed batch and stock assignments.',
  'grocery_base':'shopper: {week}: exact scaled ingredients for approved plan',
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',
  'search_products':'cart: {query}: real Chronodrive search', 'get_cart':'cart: {}',
@@ -75,10 +76,12 @@ async def lifespan(app):
     with D.db() as c:c.execute("UPDATE runs SET status='unknown',error='L’envoi a été interrompu. Vérifiez la discussion Hermes avant de réessayer.' WHERE status='submitting'")
     TOKENS=encrypted_read('tokens') or {role:secrets.token_urlsafe(40) for role in D.ROLES};encrypted_write('tokens',TOKENS)
     for r in D.recipes():D.write_markdown(r)
+    seeds = json.loads((ROOT/'seed.json').read_text())
     if not D.recipes():
-        for recipe in json.loads((ROOT/'seed.json').read_text()):D.save_recipe(recipe)
+        for recipe in seeds:D.save_recipe(recipe)
     from french import migrate
     migrate()
+    batch.mark_seed_recipes(seeds)
     try:
         for role in D.ROLES:await provision(role)
         await wait_profiles()
@@ -120,7 +123,16 @@ def state(week:str=''):
         runs=[dict(r) for r in c.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 60')]
         current=D.get(c,'week',D.week_id(week)) or D.blank_week(week)
         fill=D.get(c,'fill',(current.get('cart') or {}).get('fill_job_id',''))
-    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+        inventory = batch.inventory(c, week)
+        kitchen = batch.kitchen(c, week)
+    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'freezer':inventory,'kitchen':kitchen,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+@app.post('/api/freezer')
+async def freezer_save(req: Request):
+    return batch.save_lot(await req.json())
+
+@app.post('/api/week/{week}/kitchen')
+async def kitchen_record(week, req: Request):
+    return batch.record(week, await req.json())
 @app.post('/api/recipes')
 async def recipe_save(req:Request):return D.save_recipe(await req.json())
 @app.get('/api/recipes/{id}/markdown')
@@ -291,7 +303,12 @@ async def worker(action,req:Request):
     common={'help','context','get_recipe','search_recipes','learn'}
     if action not in common|allowed[role]:raise HTTPException(403,'This assistant cannot perform that action')
     if action=='help':return {k:v for k,v in HELP.items() if k in common|allowed[role]}
-    if action=='context':return {'recipes':D.recipes(),'preferences':D.read('preferences','main'),'learning':D.read('learning',role),'week':D.load_week(p['week']) if p.get('week') else None}
+    if action=='context':
+        context = {'recipes':D.recipes(),'preferences':D.read('preferences','main'),'learning':D.read('learning',role),'week':D.load_week(p['week']) if p.get('week') else None}
+        if role == 'planner':
+            with D.db() as c:
+                context['freezer'] = batch.planning_context(c, p.get('week'))
+        return context
     if action=='get_recipe':return D.read('recipe',p['id'])
     if action=='search_recipes':return [r for r in D.recipes() if p['query'].casefold() in json.dumps(r,ensure_ascii=False).casefold()]
     if action=='save_recipe':return D.save_recipe(p)

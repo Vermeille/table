@@ -126,7 +126,7 @@ function groceryStage() {
             ? 'Valider les courses →' : 'Valider les courses et chercher les produits →';
         controls = flowButton('approve-groceries', label, {primary: true, disabled: busy});
     }
-    const header = flowActions(summary, g.approved ? 'Liste validée' : 'Cochez les ingrédients déjà en réserve.', controls);
+    const header = flowActions(summary, g.approved ? 'Liste validée' : !g.items.length ? 'Aucun ingrédient à acheter pour ces repas.' : 'Cochez les ingrédients déjà en réserve.', controls);
     if (!edit) {
         return header + `<ul class="grocery-summary">${g.items.map(item =>
             `<li><span>${esc(item.name)}${item.checked ? ' <small>En réserve</small>' : ''}</span><span>${item.quantity} ${esc(item.unit)}</span></li>`).join('')}</ul>`;
@@ -319,7 +319,7 @@ async function shoppingAction(action) {
             await flowRequest(action, async () => {
                 await wf('approve');
                 selectStage('groceries');
-                await startAssistant('shopper', groceryPrompt);
+                if (!S.week.groceries) await startAssistant('shopper', groceryPrompt);
             });
             return;
         case 'prepare-groceries':

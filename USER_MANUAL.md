@@ -28,6 +28,18 @@ Dans **Cette semaine**, utilisez les flèches ou le calendrier pour choisir une 
 
 Lorsque le planning vous convient, cliquez sur **Valider les repas et préparer les courses**. Table enregistre la semaine et demande à l’assistant de préparer les ingrédients. Les recettes sont conservées avec la semaine : une modification ultérieure du carnet ne change pas ces copies. Retrouvez-les dans **Semaines enregistrées**. Vous pouvez rééditer le planning ; toute modification demande une nouvelle validation et supprime les propositions de courses et de produits devenues obsolètes.
 
+## Cuisiner en lots et gérer le congélateur
+
+Dans **Préférences → Cuisine en lots**, activez la planification avec le congélateur. Réglez le nombre de portions que vous souhaitez garder en réserve et le maximum à congeler par jour de cuisson. Les nouvelles propositions de l’assistant tiennent compte des stocks. **Adapter au congélateur** recalcule les quantités pour les plats déjà choisis. Les repas que vous voulez cuisiner séparément peuvent être marqués **Cuisiner à part**.
+
+Dans **Congélateur**, enregistrez les portions déjà congelées, leur date et, si vous le souhaitez, une note. Vous pouvez choisir une recette du carnet ou donner le nom d’un autre plat. Les lots indiquent ce qui est disponible et quels repas ont réservé des portions. Pour choisir un lot précis dans le planning, ouvrez le sélecteur de repas puis **Choisir dans le congélateur**.
+
+Le planning indique les jours de cuisson, combien de portions préparer et congeler, et quels jours ressortir les plats. Table utilise en priorité les lots les plus anciens compatibles avec le menu, tout en conservant une partie de la réserve. Quand le stock est bas, Table répartit les portions supplémentaires sur les cuissons prévues. Marquez une recette **Le plat complet se congèle bien** pour qu’elle puisse être proposée en lot.
+
+Valider un planning réserve les portions existantes. Après avoir effectivement congelé un plat, utilisez **Confirmer la congélation** pour enregistrer la quantité réelle. **Sortir les portions** décompte le repas au moment où vous le sortez. Si vous annulez un repas congelé, **Repas annulé** libère les portions. Si vous sautez une cuisson, modifiez le planning pour réaffecter les repas qui dépendaient de ce lot.
+
+Les courses incluent toutes les portions à cuisiner, y compris celles à congeler. Les repas provenant d’un lot ou du congélateur n’ajoutent pas d’ingrédients. Consultez les [conseils de conservation de l’Anses](https://www.anses.fr/fr/article/comment-bien-conserver-ses-aliments-ne-pas-interrompre-chaine-du-froid) pour préparer et décongeler vos portions.
+
 ## Préparer et valider les courses
 
 L’étape **Courses** affiche la progression pendant que l’assistant prépare la liste selon vos préférences. **Calculer les quantités des recettes** est disponible si vous souhaitez obtenir directement les quantités calculées à partir des portions prévues. Utilisez les étapes en haut de la page pour revenir aux repas ou reprendre une préparation en cours.
