@@ -10,7 +10,7 @@ Ces indications sont enregistrées et relues par les assistants. Elles guident l
 
 ## Votre carnet de recettes
 
-Ouvrez **Recettes**. Recherchez un plat ou une étiquette, puis ouvrez sa fiche pour consulter ingrédients, préparation et valeurs nutritionnelles estimées. **Ajouter une recette** permet de saisir un plat vous-même. Dans l’éditeur, chaque ingrédient occupe une ligne au format `quantité | unité | nom`, par exemple `200 | g | lentilles`.
+Ouvrez **Recettes**. Recherchez un plat ou une étiquette, puis ouvrez sa fiche pour consulter ingrédients, préparation et nutrition par portion. Dans l’éditeur, chaque ligne possède un aliment, une quantité et une unité. **Rechercher dans Ciqual** permet de choisir l’aliment correspondant, par exemple la lentille corail sèche ou cuite selon le poids saisi. Pour les pièces, cuillères et volumes, renseignez le poids comestible total en grammes si Table n’a pas de conversion de référence.
 
 Avec l’assistant recettes, vous pouvez demander :
 
@@ -18,7 +18,7 @@ Avec l’assistant recettes, vous pouvez demander :
 - « Fais une variante sans crème fraîche, en conservant l’originale. »
 - « Propose une version plus équilibrée et explique les changements. »
 
-Les recettes sont réellement enregistrées dans le carnet. Les variantes gardent leur propre identifiant. **Télécharger en Markdown** permet d’en conserver une copie. Les valeurs nutritionnelles sont des estimations, y compris pour les recettes fournies avec l’application.
+Les recettes sont réellement enregistrées dans le carnet. Les variantes gardent leur propre identifiant. **Télécharger en Markdown** permet d’en conserver une copie. Table calcule l’énergie, les protéines, les glucides et les lipides à partir de la table Ciqual 2025 de l’Anses. Les valeurs représentent des aliments moyens. Le champ de poids est utile pour les portions qui varient, comme un avocat. Un tiret signale une donnée ou un poids manquant, et ≥ une valeur connue à laquelle s’ajoutent des traces. Les anciennes estimations sont conservées dans l’historique du carnet.
 
 ## Préparer la semaine
 

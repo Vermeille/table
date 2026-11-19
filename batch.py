@@ -26,7 +26,8 @@ def mark_seed_recipes(seeds):
             note = SEED_NOTES.get(seed['id'])
             recipe = D.get(c, 'recipe', seed['id'])
             if (note and recipe and 'freezer_ok' not in recipe
-                    and all(recipe.get(field) == seed.get(field) for field in ('method', 'ingredients'))):
+                    and recipe['method'] == seed['method']
+                    and [{field: item[field] for field in ('name', 'quantity', 'unit')} for item in recipe['ingredients']] == seed['ingredients']):
                 recipe.update(freezer_ok=True, freezer_note=note)
                 changed.append(D.put(c, 'recipe', recipe['id'], recipe, recipe['version']))
         D.put(c, 'migration', 'freezer-seed-v1', {})

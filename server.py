@@ -8,6 +8,7 @@ import httpx
 from cryptography.fernet import Fernet
 import domain as D
 import batch
+import recipe_nutrition as nutrition
 import cart_review
 import cart_fill
 from french import error as french_error
@@ -16,7 +17,8 @@ PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
 HELP={
  'context':'{week?: YYYY-MM-DD}: recipes, preferences, learning, selected week',
  'get_recipe':'{id}', 'search_recipes':'{query}',
- 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit}],tags:[],nutrition:{kcal,protein_g,carbs_g,fat_g},method, nutrition_note?}',
+ 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:Ciqual ID,grams_per_unit?:edible grams per piece or volume unit}],tags:[],method,freezer_ok?,freezer_note?}. Table calculates nutrition from Ciqual; submitted totals are ignored.',
+ 'search_foods':'{query}: French Ciqual food search, with raw/cooked labels and macros per 100 g.',
  'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings,cook_fresh?:true,freezer_lot_id?:ID (only for a lot explicitly chosen by owner)}]}. Returns computed batch and stock assignments.',
  'grocery_base':'shopper: {week}: exact scaled ingredients for approved plan',
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',
@@ -82,6 +84,7 @@ async def lifespan(app):
     from french import migrate
     migrate()
     batch.mark_seed_recipes(seeds)
+    nutrition.migrate()
     try:
         for role in D.ROLES:await provision(role)
         await wait_profiles()
@@ -125,7 +128,17 @@ def state(week:str=''):
         fill=D.get(c,'fill',(current.get('cart') or {}).get('fill_job_id',''))
         inventory = batch.inventory(c, week)
         kitchen = batch.kitchen(c, week)
-    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'freezer':inventory,'kitchen':kitchen,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+    return {'recipes':D.recipes(),'week':nutrition.project_week(current),'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'freezer':inventory,'kitchen':kitchen,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+@app.get('/api/foods')
+def foods(q: str):
+    return nutrition.search(q)
+
+@app.post('/api/nutrition/preview')
+async def preview_nutrition(req: Request):
+    recipe = await req.json()
+    nutrition.validate_recipe_quantities(recipe, allow_empty=True)
+    _, _, report = nutrition.calculate(recipe)
+    return report
 @app.post('/api/freezer')
 async def freezer_save(req: Request):
     return batch.save_lot(await req.json())
@@ -299,12 +312,12 @@ async def worker(action,req:Request):
     token=req.headers.get('Authorization','').removeprefix('Bearer ');role=next((r for r,t in TOKENS.items() if hmac.compare_digest(token,t)),None)
     if not role:raise HTTPException(401,'Invalid worker credential')
     p=await req.json()
-    allowed={'cookbook':{'save_recipe'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
+    allowed={'cookbook':{'save_recipe','search_foods'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
     common={'help','context','get_recipe','search_recipes','learn'}
     if action not in common|allowed[role]:raise HTTPException(403,'This assistant cannot perform that action')
     if action=='help':return {k:v for k,v in HELP.items() if k in common|allowed[role]}
     if action=='context':
-        context = {'recipes':D.recipes(),'preferences':D.read('preferences','main'),'learning':D.read('learning',role),'week':D.load_week(p['week']) if p.get('week') else None}
+        context = {'recipes':D.recipes(),'preferences':D.read('preferences','main'),'learning':D.read('learning',role),'week':nutrition.project_week(D.load_week(p['week'])) if p.get('week') else None}
         if role == 'planner':
             with D.db() as c:
                 context['freezer'] = batch.planning_context(c, p.get('week'))
@@ -312,6 +325,7 @@ async def worker(action,req:Request):
     if action=='get_recipe':return D.read('recipe',p['id'])
     if action=='search_recipes':return [r for r in D.recipes() if p['query'].casefold() in json.dumps(r,ensure_ascii=False).casefold()]
     if action=='save_recipe':return D.save_recipe(p)
+    if action=='search_foods':return nutrition.search(p['query'])
     if action=='save_week':return D.update_week(p['week'],p)
     if action=='grocery_base':
         w=D.load_week(p['week'])

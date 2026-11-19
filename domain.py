@@ -47,14 +47,19 @@ def write_markdown(r):
     p=DATA/'cookbook'/f"{valid_id(r['id'])}.md";tmp=p.with_suffix('.tmp')
     tmp.write_text('---\n'+json.dumps({k:v for k,v in r.items() if k!='method'},ensure_ascii=False,indent=2)+'\n---\n\n'+r['method']+'\n');tmp.replace(p)
 def save_recipe(data):
-    data=dict(data);id=valid_id(data.get('id') or re.sub('[^a-z0-9]+','-',data['title'].lower()).strip('-')[:70] or uid())
-    if not data.get('title') or not data.get('method'):raise ValueError('A title and recipe method are required.')
-    if not isinstance(data.get('servings'),(int,float)) or not 0<data['servings']<=100:raise ValueError('Servings must be between 1 and 100.')
-    if not isinstance(data.get('ingredients'),list) or not data['ingredients']:raise ValueError('Add ingredients with name, quantity and unit.')
-    for i in data['ingredients']:
-        if not i.get('name') or not isinstance(i.get('quantity'),(int,float)) or i['quantity']<=0 or not isinstance(i.get('unit'),str):raise ValueError('Every ingredient needs a positive quantity, name and unit.')
-    if not isinstance(data.get('tags',[]),list) or not isinstance(data.get('nutrition',{}),dict):raise ValueError('Invalid tags or nutrition.')
-    data.setdefault('nutrition',{});data.setdefault('tags',[]);data['nutrition_note']=data.get('nutrition_note','Estimation par personne, à vérifier selon vos besoins alimentaires.')
+    import recipe_nutrition as N
+
+    data = dict(data)
+    title = data.get('title')
+    method = data.get('method')
+    if not isinstance(title, str) or not title.strip() or not isinstance(method, str) or not method.strip():
+        raise ValueError('A title and recipe method are required.')
+    id = valid_id(data.get('id') or re.sub('[^a-z0-9]+','-',title.lower()).strip('-')[:70] or uid())
+    N.validate_recipe_quantities(data)
+    if not isinstance(data.get('tags', []), list):raise ValueError('Invalid tags or nutrition.')
+    data.setdefault('tags', [])
+    data.pop('nutrition_note', None)
+    data.pop('freezer_only', None)
     with db() as c:
         old = get(c, 'recipe', id)
         if 'freezer_ok' not in data and old:
@@ -68,6 +73,7 @@ def save_recipe(data):
             data['freezer_note'] = str(data.get('freezer_note', '')).strip()[:500]
         else:
             data.pop('freezer_note', None)
+        data['ingredients'], data['nutrition'], data['nutrition_report'] = N.calculate({**data, 'id':id}, enrich=True, previous=old)
         r = put(c, 'recipe', id, data, data.get('version', 0))
     write_markdown(r);return r
 def week_id(id):
