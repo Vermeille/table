@@ -196,7 +196,8 @@ function cartPanel(w, busy, status) {
     } else if (c.status === 'approved') {
         next = flowButton('fill-cart', 'Remplir le panier validé →', {primary: true, disabled: busy});
     } else {
-        next = `<button class="primary" data-stage="cart">Voir le panier →</button>`;
+        next = (c.status === 'review' ? flowButton('reopen-cart', 'Modifier la sélection') : '')
+            + '<button class="primary" data-stage="cart">Voir le panier →</button>';
     }
     const missingCount = unresolved.length;
     const blocker = missingCount ? `${missingCount} ingrédient${missingCount === 1 ? '' : 's'} à traiter` : '';
