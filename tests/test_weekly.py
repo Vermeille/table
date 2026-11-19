@@ -134,6 +134,18 @@ class WeeklyPreparation(unittest.TestCase):
         self.assertEqual(D.read('weekly',self.week)['quality']['no_cook_misses'],[])
         self.assertEqual(D.read('freezer','main')['lots'][0]['quantity'],10)
 
+    def test_one_cooking_day_can_supply_four_reheats_under_its_portion_limit(self):
+        self.configure(people=1,meals=['dinner'],days=[0,1,2,3,4],no_cook=[1,2,3,4],cook_days=1,diet='vegan')
+        weekly.owner_request(self.week,0)
+        self.tick()
+        self.complete_run('plan_run','failed')
+        self.tick()
+        job=D.read('weekly',self.week)
+        self.assertEqual(job['quality']['cook_days'],[0])
+        self.assertEqual(job['quality']['frozen_meals'],4)
+        self.assertEqual(job['quality']['no_cook_misses'],[])
+        self.assertEqual(D.load_week(self.week)['batch']['0-dinner']['quantity'],5)
+
     def test_timed_out_planner_publishes_the_fallback_and_requests_exact_cancel(self):
         self.configure(people=2,days=[0],meals=['lunch'])
         weekly.owner_request(self.week,0)

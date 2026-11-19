@@ -445,6 +445,9 @@ def fallback(c, job, w, facts=None):
         for days in candidate_days:
             chosen=[]
             used=Counter()
+            extra_by_day=Counter()
+            anchors={}
+            capacity=job['batch_settings']['extra_per_day'] if job['batch_settings']['enabled'] else 0
             for day,meal in slots:
                 portable = meal=='lunch' and day in config['portable']
                 eligible = [r for r in pool if not portable or r['portable']] or pool
@@ -454,15 +457,18 @@ def fallback(c, job, w, facts=None):
                     used[stock[(day,meal)]]+=1
                     continue
                 if day not in days:
-                    reusable=[p for p in chosen if p['day'] < day and p['recipe_id'] in {r['id'] for r in eligible if r['freezer_ok']}
-                              and used[p['recipe_id']] < 3 and (p['day'],p['meal']) not in stock]
+                    reusable=[r['id'] for r in eligible if r['freezer_ok'] and r['id'] in anchors
+                              and anchors[r['id']] < day and slot['servings']==int(slot['servings'])
+                              and extra_by_day[anchors[r['id']]]+slot['servings']<=capacity]
                 else:
                     reusable=[]
                 if reusable:
-                    recipe_id=min(reusable,key=lambda p:used[p['recipe_id']])['recipe_id']
+                    recipe_id=min(reusable,key=lambda id:(used[id],extra_by_day[anchors[id]]))
+                    extra_by_day[anchors[recipe_id]]+=slot['servings']
                 else:
                     staggered=eligible[offset%len(eligible):]+eligible[:offset%len(eligible)]
                     recipe_id=min(staggered,key=lambda r:used[r['id']]*4 + (not r['freezer_ok'])*2 + (r['id'] in facts['last_week']) + gaps_by_recipe[r['id']]*3)['id']
+                    anchors.setdefault(recipe_id,day)
                 chosen.append({**slot,'recipe_id':recipe_id});used[recipe_id]+=1
             try:
                 draft,quality=candidate(c,job,w,chosen)
