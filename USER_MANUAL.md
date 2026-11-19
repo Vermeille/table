@@ -8,6 +8,16 @@ Dans **Préférences**, renseignez **Vos repas** : nombre de personnes, goûts, 
 
 Ces indications sont enregistrées et relues par les assistants. Elles guident leurs prochaines propositions sans modifier automatiquement un planning déjà validé.
 
+## Recevoir le menu de la semaine
+
+Dans **Préférences → Préparation automatique**, choisissez le jour et l’heure auxquels Table prépare la semaine suivante. Indiquez le nombre de personnes, les repas à prévoir, les jours sans cuisine, les déjeuners à emporter et les aliments à éviter. Ajoutez les ingrédients que vous avez toujours en réserve si vous voulez que Table les coche sur la liste. Les jours sans cuisine sont vérifiés sur le plan de cuisson réellement calculé. Si le congélateur ou les recettes disponibles ne suffisent pas, le brouillon indique les jours à revoir.
+
+Pour préparer une semaine tout de suite, ouvrez-la dans **Planning** puis cliquez sur **Préparer cette semaine**. Si vous avez déjà choisi les repas, **Préparer les courses** calcule la liste et cherche les produits en gardant votre menu. Table conserve le brouillon pendant que vous êtes absent.
+
+Ouvrez **Notifications sur cet appareil** dans les préférences, cliquez sur **Activer sur cet appareil** et autorisez les notifications. Sur iPhone ou iPad, ajoutez d’abord Table à l’écran d’accueil et ouvrez-la depuis son icône. **Envoyer un essai** permet de vérifier la réception. Le rappel apparaît aussi dans Table.
+
+Lisez le menu et son plan de cuisson, puis validez les repas, la liste de courses et enfin les produits. Les sélections déjà préparées apparaissent à chaque étape. Quand vous remplacez un plat dans un brouillon préparé, Table garde les produits dont les quantités sont identiques et relance la recherche pour les lignes qui changent. Une proposition de produits reste dans Table jusqu’à votre clic sur **Valider et remplir le panier**. Le retrait et le paiement se choisissent sur Chronodrive.
+
 ## Votre carnet de recettes
 
 Ouvrez **Recettes**. Recherchez un plat ou une étiquette, puis ouvrez sa fiche pour consulter ingrédients, préparation et nutrition par portion. Dans l’éditeur, chaque ligne possède un aliment, une quantité et une unité. **Rechercher un aliment** permet de choisir l’aliment correspondant, par exemple la lentille corail sèche ou cuite selon le poids saisi. Pour les pièces, cuillères et volumes, renseignez le poids comestible total en grammes si Table n’a pas de conversion de référence.
@@ -16,13 +26,16 @@ Avec l’assistant recettes, vous pouvez demander :
 
 - « Ajoute plusieurs sortes de pizzas, dont deux végétariennes. »
 - « Fais une variante sans crème fraîche, en conservant l’originale. »
+- « Passe ce curry de quatre à six portions et vérifie les macros par portion. »
 - « Propose une version plus équilibrée et explique les changements. »
 
 Les recettes sont réellement enregistrées dans le carnet. Les variantes gardent leur propre identifiant. **Télécharger en Markdown** permet d’en conserver une copie. Table calcule l’énergie, les protéines, les glucides et les lipides à partir de Ciqual 2025 (Anses) et de quelques références complémentaires FoodData Central (USDA). Les poids de référence sont signalés sur chaque ingrédient et peuvent être remplacés par une pesée. Les valeurs représentent des aliments moyens. Le champ de poids est utile pour les portions qui varient, comme un avocat. Un tiret signale une donnée ou un poids manquant, et ≥ une valeur connue à laquelle s’ajoutent des traces. Les anciennes estimations sont conservées dans l’historique du carnet.
 
+L’assistant prévisualise les valeurs avant d’enregistrer une nouvelle recette ou un changement d’ingrédient. Table réutilise les références des ingrédients inchangés. Si une fiche ou un poids manque, la ligne à compléter est indiquée. Sous **Temps, matériel et transport**, vous pouvez indiquer la durée de préparation, les ustensiles et si le repas se transporte facilement.
+
 ## Préparer la semaine
 
-Dans **Cette semaine**, utilisez les flèches ou le calendrier pour choisir une semaine. **M’aider à planifier** prépare une demande : envoyez-la avec **Envoyer**. Affinez ensuite la proposition : « Plus rapide le mercredi », « Moins de pâtes » ou « Utilise les légumes restants ».
+Dans **Planning**, utilisez les flèches ou le calendrier pour choisir une semaine. **Assistant** prépare une demande que vous pouvez modifier et envoyer. Affinez ensuite la proposition en demandant par exemple « Plus rapide le mercredi », « Moins de pâtes » ou « Utilise les légumes restants ».
 
 **Choisir un repas** ouvre la recherche dans le carnet. **Remplacer** permet de changer un plat ; le champ **Pour** ajuste le nombre de personnes et × retire le repas. Le planning accepte petits-déjeuners, déjeuners et dîners ; les assistants proposent des dîners par défaut. Ouvrez un plat pour retrouver sa recette.
 

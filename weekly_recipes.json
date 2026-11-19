@@ -1,0 +1,859 @@
+[
+  {
+    "id": "mijote-lentilles-boulgour",
+    "title": "Mijoté de lentilles vertes, carottes et boulgour",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien",
+      "une casserole"
+    ],
+    "ingredients": [
+      {
+        "name": "Lentilles vertes sèches",
+        "quantity": 205,
+        "unit": "g",
+        "food_id": "20585"
+      },
+      {
+        "name": "Boulgour",
+        "quantity": 150,
+        "unit": "g",
+        "food_id": "9690"
+      },
+      {
+        "name": "Carottes",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20009"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 110,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 300,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 25,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Paprika",
+        "quantity": 3,
+        "unit": "g",
+        "food_id": "11049"
+      }
+    ],
+    "method": "1. Taillez les carottes et l’oignon en petits dés. Faites-les revenir 5 minutes dans l’huile avec le paprika.\n\n2. Rincez les lentilles. Couvrez-les d’eau dans la casserole et laissez frémir 20 minutes. Ajoutez les tomates, puis laissez mijoter jusqu’à ce que les lentilles soient presque tendres.\n\n3. Versez le boulgour et ajoutez de l’eau chaude juste pour le couvrir. Cuisez à couvert selon le paquet, généralement 10 à 12 minutes. Rectifiez la texture avec un peu d’eau.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 14,
+      "total_minutes": 45,
+      "equipment": [
+        "casserole"
+      ]
+    }
+  },
+  {
+    "id": "quinoa-pois-chiches-amandes",
+    "title": "Quinoa aux pois chiches, épinards et amandes",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien"
+    ],
+    "ingredients": [
+      {
+        "name": "Quinoa",
+        "quantity": 150,
+        "unit": "g",
+        "food_id": "9340"
+      },
+      {
+        "name": "Pois chiches en conserve, poids égoutté",
+        "quantity": 360,
+        "unit": "g",
+        "food_id": "20532"
+      },
+      {
+        "name": "Épinards",
+        "quantity": 180,
+        "unit": "g",
+        "food_id": "20059"
+      },
+      {
+        "name": "Carottes",
+        "quantity": 200,
+        "unit": "g",
+        "food_id": "20009"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 250,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Huile de colza",
+        "quantity": 20,
+        "unit": "g",
+        "food_id": "17130"
+      },
+      {
+        "name": "Amandes nature",
+        "quantity": 30,
+        "unit": "g",
+        "food_id": "15000"
+      },
+      {
+        "name": "Cumin en graines",
+        "quantity": 3,
+        "unit": "g",
+        "food_id": "11042"
+      }
+    ],
+    "method": "1. Rincez le quinoa et cuisez-le à couvert suivant le paquet. Pendant ce temps, taillez les carottes.\n\n2. Faites revenir les carottes et le cumin à la sauteuse. Ajoutez les tomates et les pois chiches égouttés, couvrez 10 minutes puis faites tomber les épinards.\n\n3. Mélangez avec le quinoa. Concassez les amandes et répartissez-les. Gardez les amandes à part si vous souhaitez préserver leur croquant.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 16,
+      "total_minutes": 32,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "tofu-gingembre-brocoli-riz",
+    "title": "Tofu au gingembre, brocoli et riz complet",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien"
+    ],
+    "ingredients": [
+      {
+        "name": "Tofu nature",
+        "quantity": 350,
+        "unit": "g",
+        "food_id": "20904"
+      },
+      {
+        "name": "Riz complet",
+        "quantity": 172,
+        "unit": "g",
+        "food_id": "9102"
+      },
+      {
+        "name": "Brocoli",
+        "quantity": 270,
+        "unit": "g",
+        "food_id": "20057"
+      },
+      {
+        "name": "Carottes",
+        "quantity": 220,
+        "unit": "g",
+        "food_id": "20009"
+      },
+      {
+        "name": "Huile de colza",
+        "quantity": 21,
+        "unit": "g",
+        "food_id": "17130"
+      },
+      {
+        "name": "Sauce soja",
+        "quantity": 23,
+        "unit": "g",
+        "food_id": "11104"
+      },
+      {
+        "name": "Gingembre frais",
+        "quantity": 12,
+        "unit": "g",
+        "food_id": "11074"
+      },
+      {
+        "name": "Ail",
+        "quantity": 2,
+        "unit": "gousse",
+        "food_id": "11000",
+        "weight_reference": "garlic_clove"
+      }
+    ],
+    "method": "1. Mettez le riz à cuire selon le paquet. Coupez le tofu et le brocoli en morceaux et émincez les carottes.\n\n2. Dorez le tofu dans la moitié de l’huile. Réservez-le. Faites revenir les légumes avec le reste de l’huile, l’ail et le gingembre.\n\n3. Ajoutez quelques cuillerées d’eau, couvrez jusqu’à ce que les légumes soient tendres. Remettez le tofu, ajoutez la sauce soja, mélangez et répartissez avec le riz.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat et le riz en portions peu épaisses. Refroidir le riz idéalement en une heure, puis congeler. Décongeler au réfrigérateur et réchauffer une seule fois, à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 17,
+      "total_minutes": 36,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "curry-chou-fleur-pois-chiches",
+    "title": "Curry de chou-fleur et pois chiches, riz complet",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien"
+    ],
+    "ingredients": [
+      {
+        "name": "Riz complet",
+        "quantity": 160,
+        "unit": "g",
+        "food_id": "9102"
+      },
+      {
+        "name": "Pois chiches en conserve, poids égoutté",
+        "quantity": 380,
+        "unit": "g",
+        "food_id": "20532"
+      },
+      {
+        "name": "Chou-fleur",
+        "quantity": 350,
+        "unit": "g",
+        "food_id": "20016"
+      },
+      {
+        "name": "Épinards",
+        "quantity": 180,
+        "unit": "g",
+        "food_id": "20059"
+      },
+      {
+        "name": "Lait de coco en conserve",
+        "quantity": 155,
+        "unit": "g",
+        "food_id": "18041"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 85,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Huile de colza",
+        "quantity": 10,
+        "unit": "g",
+        "food_id": "17130"
+      },
+      {
+        "name": "Curry en poudre",
+        "quantity": 6,
+        "unit": "g",
+        "food_id": "11005"
+      }
+    ],
+    "method": "1. Mettez le riz à cuire selon le paquet. Détaillez le chou-fleur en petites fleurettes.\n\n2. Faites revenir l’oignon et le curry dans l’huile. Ajoutez le chou-fleur, le lait de coco et un peu d’eau. Couvrez et laissez mijoter 12 à 15 minutes.\n\n3. Ajoutez les pois chiches égouttés et les épinards. Prolongez la cuisson de 4 minutes et répartissez avec le riz.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat et le riz en portions peu épaisses. Refroidir le riz idéalement en une heure, puis congeler. Décongeler au réfrigérateur et réchauffer une seule fois, à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 13,
+      "total_minutes": 36,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "saumon-tomate-poireaux-quinoa",
+    "title": "Saumon mijoté aux poireaux et quinoa",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "poisson"
+    ],
+    "ingredients": [
+      {
+        "name": "Pavés de saumon frais",
+        "quantity": 300,
+        "unit": "g",
+        "food_id": "26036"
+      },
+      {
+        "name": "Quinoa",
+        "quantity": 180,
+        "unit": "g",
+        "food_id": "9340"
+      },
+      {
+        "name": "Poireaux",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20039"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 300,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 22,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Ail",
+        "quantity": 2,
+        "unit": "gousse",
+        "food_id": "11000",
+        "weight_reference": "garlic_clove"
+      },
+      {
+        "name": "Paprika",
+        "quantity": 3,
+        "unit": "g",
+        "food_id": "11049"
+      }
+    ],
+    "method": "1. Rincez puis cuisez le quinoa. Lavez soigneusement les poireaux et coupez-les en rondelles fines.\n\n2. Faites suer les poireaux et l’ail dans l’huile. Ajoutez les tomates concassées et le paprika. Laissez mijoter 10 minutes.\n\n3. Coupez le saumon en gros morceaux, ajoutez-le à la sauce et cuisez doucement à couvert jusqu’à ce qu’il soit bien cuit et se détache à la fourchette. Répartissez avec le quinoa.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 14,
+      "total_minutes": 30,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "lieu-tomate-haricots-boulgour",
+    "title": "Lieu noir à la tomate, haricots blancs et boulgour",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "poisson"
+    ],
+    "ingredients": [
+      {
+        "name": "Filets de lieu noir frais",
+        "quantity": 400,
+        "unit": "g",
+        "food_id": "26134"
+      },
+      {
+        "name": "Haricots blancs en conserve, poids égoutté",
+        "quantity": 400,
+        "unit": "g",
+        "food_id": "20511"
+      },
+      {
+        "name": "Boulgour",
+        "quantity": 180,
+        "unit": "g",
+        "food_id": "9690"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 400,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Poivrons",
+        "quantity": 220,
+        "unit": "g",
+        "food_id": "20041"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 24,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 85,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Paprika",
+        "quantity": 3,
+        "unit": "g",
+        "food_id": "11049"
+      }
+    ],
+    "method": "1. Mettez le boulgour à cuire. Coupez le poivron et l’oignon en dés et faites-les revenir dans l’huile.\n\n2. Versez les tomates et le paprika. Mijotez 8 minutes puis ajoutez les haricots blancs égouttés.\n\n3. Posez les filets dans la sauce, couvrez et laissez cuire doucement jusqu’à ce que le poisson soit bien cuit et se détache à la fourchette. Répartissez avec le boulgour.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 14,
+      "total_minutes": 28,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "poulet-haricots-blancs-orge",
+    "title": "Poulet mijoté aux haricots blancs, carottes et orge",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "volaille"
+    ],
+    "ingredients": [
+      {
+        "name": "Filets de poulet frais",
+        "quantity": 300,
+        "unit": "g",
+        "food_id": "36017"
+      },
+      {
+        "name": "Haricots blancs en conserve, poids égoutté",
+        "quantity": 380,
+        "unit": "g",
+        "food_id": "20511"
+      },
+      {
+        "name": "Orge perlé",
+        "quantity": 180,
+        "unit": "g",
+        "food_id": "9321"
+      },
+      {
+        "name": "Carottes",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20009"
+      },
+      {
+        "name": "Poivrons",
+        "quantity": 220,
+        "unit": "g",
+        "food_id": "20041"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 320,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 24,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Ail",
+        "quantity": 2,
+        "unit": "gousse",
+        "food_id": "11000",
+        "weight_reference": "garlic_clove"
+      }
+    ],
+    "method": "1. Cuisez l’orge selon le paquet. Coupez les légumes en dés et le poulet en morceaux de taille régulière.\n\n2. Dorez le poulet dans l’huile. Ajoutez les carottes, poivrons et l’ail, remuez 5 minutes.\n\n3. Ajoutez les tomates, couvrez et mijotez jusqu’à ce que le poulet soit cuit à cœur. Ajoutez les haricots blancs égouttés pour les 5 dernières minutes, puis répartissez avec l’orge.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 17,
+      "total_minutes": 42,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "tajine-poulet-patates-douces",
+    "title": "Poulet mijoté aux patates douces et pois chiches",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "volaille",
+      "une casserole"
+    ],
+    "ingredients": [
+      {
+        "name": "Filets de poulet frais",
+        "quantity": 320,
+        "unit": "g",
+        "food_id": "36017"
+      },
+      {
+        "name": "Patates douces",
+        "quantity": 640,
+        "unit": "g",
+        "food_id": "4101"
+      },
+      {
+        "name": "Pois chiches en conserve, poids égoutté",
+        "quantity": 340,
+        "unit": "g",
+        "food_id": "20532"
+      },
+      {
+        "name": "Chou-fleur",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20016"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 105,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 25,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Cumin en graines",
+        "quantity": 4,
+        "unit": "g",
+        "food_id": "11042"
+      },
+      {
+        "name": "Paprika",
+        "quantity": 4,
+        "unit": "g",
+        "food_id": "11049"
+      }
+    ],
+    "method": "1. Détaillez les patates douces en cubes de 2 à 3 cm et le chou-fleur en petites fleurettes. Coupez le poulet en morceaux.\n\n2. Faites revenir l’oignon et les épices dans l’huile, puis faites dorer le poulet. Ajoutez les patates douces et 250 ml d’eau pour deux personnes.\n\n3. Couvrez 10 minutes. Ajoutez le chou-fleur et les pois chiches égouttés et laissez mijoter jusqu’à ce que les légumes soient tendres et que le poulet soit cuit à cœur.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 16,
+      "total_minutes": 35,
+      "equipment": [
+        "cocotte"
+      ]
+    }
+  },
+  {
+    "id": "pates-ragout-aubergine-haricots",
+    "title": "Pâtes au ragoût d’aubergines et haricots rouges",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien"
+    ],
+    "ingredients": [
+      {
+        "name": "Pâtes sèches",
+        "quantity": 175,
+        "unit": "g",
+        "food_id": "9810"
+      },
+      {
+        "name": "Haricots rouges en conserve, poids égoutté",
+        "quantity": 400,
+        "unit": "g",
+        "food_id": "20524"
+      },
+      {
+        "name": "Aubergines",
+        "quantity": 330,
+        "unit": "g",
+        "food_id": "20053"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 380,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 105,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 24,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Ail",
+        "quantity": 2,
+        "unit": "gousse",
+        "food_id": "11000",
+        "weight_reference": "garlic_clove"
+      },
+      {
+        "name": "Cerneaux de noix",
+        "quantity": 24,
+        "unit": "g",
+        "food_id": "15005"
+      }
+    ],
+    "method": "1. Coupez l’aubergine en dés. Faites dorer l’oignon et l’aubergine dans l’huile à feu moyen.\n\n2. Ajoutez l’ail, les tomates et les haricots égouttés. Couvrez et mijotez jusqu’à ce que l’aubergine soit fondante.\n\n3. Cuisez les pâtes al dente. Répartissez avec le ragoût et les noix concassées. Ajoutez un trait d’eau au réchauffage si besoin.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 15,
+      "total_minutes": 34,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "soupe-pois-casses-poireaux",
+    "title": "Soupe épaisse aux pois cassés, poireaux et pommes de terre",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétalien",
+      "une casserole"
+    ],
+    "ingredients": [
+      {
+        "name": "Pois cassés secs",
+        "quantity": 220,
+        "unit": "g",
+        "food_id": "20515"
+      },
+      {
+        "name": "Pommes de terre",
+        "quantity": 480,
+        "unit": "g",
+        "food_id": "4008"
+      },
+      {
+        "name": "Poireaux",
+        "quantity": 260,
+        "unit": "g",
+        "food_id": "20039"
+      },
+      {
+        "name": "Carottes",
+        "quantity": 200,
+        "unit": "g",
+        "food_id": "20009"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 100,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 25,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Amandes nature",
+        "quantity": 25,
+        "unit": "g",
+        "food_id": "15000"
+      }
+    ],
+    "method": "1. Rincez les pois cassés et lavez les poireaux. Coupez les légumes en morceaux.\n\n2. Faites revenir l’oignon, les poireaux et les carottes dans l’huile. Ajoutez les pois cassés et les pommes de terre. Couvrez d’eau et faites frémir 35 à 45 minutes, jusqu’à ce que les pois soient tendres.\n\n3. Mixez une partie de la soupe pour la rendre onctueuse et répartissez les amandes. Emportez-la dans un contenant étanche.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 15,
+      "total_minutes": 52,
+      "equipment": [
+        "cocotte"
+      ]
+    }
+  },
+  {
+    "id": "quinoa-lentilles-corail-feta",
+    "title": "Quinoa aux lentilles corail, courgettes et feta",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "végétarien"
+    ],
+    "ingredients": [
+      {
+        "name": "Quinoa",
+        "quantity": 150,
+        "unit": "g",
+        "food_id": "9340"
+      },
+      {
+        "name": "Lentilles corail sèches",
+        "quantity": 150,
+        "unit": "g",
+        "food_id": "20535"
+      },
+      {
+        "name": "Courgettes",
+        "quantity": 330,
+        "unit": "g",
+        "food_id": "20020"
+      },
+      {
+        "name": "Épinards",
+        "quantity": 190,
+        "unit": "g",
+        "food_id": "20059"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Feta",
+        "quantity": 115,
+        "unit": "g",
+        "food_id": "12066"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 24,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Ail",
+        "quantity": 2,
+        "unit": "gousse",
+        "food_id": "11000",
+        "weight_reference": "garlic_clove"
+      }
+    ],
+    "method": "1. Cuisez le quinoa. Rincez les lentilles corail et coupez les courgettes en dés.\n\n2. Faites dorer les courgettes et l’ail dans l’huile. Ajoutez les tomates, les lentilles et assez d’eau pour les couvrir. Laissez mijoter 12 à 15 minutes.\n\n3. Ajoutez les épinards et le quinoa. Émiettez la feta, mélangez et répartissez.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat en petites portions. Refroidir rapidement puis congeler sans attendre. Décongeler au réfrigérateur et réchauffer à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 14,
+      "total_minutes": 32,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  },
+  {
+    "id": "chili-boeuf-haricots-riz-complet",
+    "title": "Chili de bœuf et de haricots rouges, riz complet",
+    "servings": 2,
+    "tags": [
+      "à congeler",
+      "à emporter",
+      "bœuf"
+    ],
+    "ingredients": [
+      {
+        "name": "Bœuf haché 5 % MG",
+        "quantity": 250,
+        "unit": "g",
+        "food_id": "6250"
+      },
+      {
+        "name": "Haricots rouges en conserve, poids égoutté",
+        "quantity": 370,
+        "unit": "g",
+        "food_id": "20524"
+      },
+      {
+        "name": "Riz complet",
+        "quantity": 165,
+        "unit": "g",
+        "food_id": "9102"
+      },
+      {
+        "name": "Poivrons",
+        "quantity": 240,
+        "unit": "g",
+        "food_id": "20041"
+      },
+      {
+        "name": "Tomates concassées",
+        "quantity": 330,
+        "unit": "g",
+        "food_id": "20169"
+      },
+      {
+        "name": "Oignons jaunes",
+        "quantity": 85,
+        "unit": "g",
+        "food_id": "20034"
+      },
+      {
+        "name": "Huile d’olive",
+        "quantity": 21,
+        "unit": "ml",
+        "food_id": "17270"
+      },
+      {
+        "name": "Paprika",
+        "quantity": 4,
+        "unit": "g",
+        "food_id": "11049"
+      },
+      {
+        "name": "Cumin en graines",
+        "quantity": 3,
+        "unit": "g",
+        "food_id": "11042"
+      }
+    ],
+    "method": "1. Mettez le riz à cuire. Faites revenir l’oignon et les poivrons dans l’huile, puis ajoutez les épices et le bœuf haché.\n\n2. Remuez pour émietter la viande. Ajoutez les tomates et les haricots égouttés. Laissez mijoter jusqu’à ce que la sauce épaississe et que la viande soit cuite à cœur.\n\n3. Répartissez le chili avec le riz complet.",
+    "freezer_ok": true,
+    "freezer_note": "Répartir le plat et le riz en portions peu épaisses. Refroidir le riz idéalement en une heure, puis congeler. Décongeler au réfrigérateur et réchauffer une seule fois, à cœur.",
+    "planning": {
+      "portable": true,
+      "active_minutes": 15,
+      "total_minutes": 36,
+      "equipment": [
+        "casserole",
+        "sauteuse"
+      ]
+    }
+  }
+]

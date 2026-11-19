@@ -1,6 +1,7 @@
 """Canonical retailer metadata, including public product-photo URLs."""
 import re
 from urllib.parse import urlsplit,urljoin
+from retailer_quantities import content,drained
 
 def product_id(value):
     value=str(value)
@@ -19,4 +20,4 @@ def image_url(product):
 
 def normalize(product):
     labels=product.get('labels') or {};prices=product.get('prices') or {}
-    return {'productId':str(product.get('id','')),'name':labels.get('productLabel','').strip(),'brand':labels.get('brandLabel','').strip(),'size':labels.get('unitQuantityLabel',''),'price':prices.get('defaultPrice'),'stock':product.get('stock'),'remainingStock':product.get('remainingStock'),'image_url':image_url(product)}
+    return {'productId':str(product.get('id','')),'name':labels.get('productLabel','').strip(),'brand':labels.get('brandLabel','').strip(),'size':labels.get('unitQuantityLabel',''),'price':prices.get('defaultPrice'),'stock':product.get('stock'),'remainingStock':product.get('remainingStock'),'image_url':image_url(product),'pack':content(product),'drained':drained(product)}

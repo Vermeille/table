@@ -81,6 +81,19 @@ function editRecipe(original) {
             <datalist id="ingredient-units">${ingredientUnits.map(unit => `<option value="${unit}"></option>`).join('')}</datalist>
             <button type="button" id="add-ingredient">+ Ajouter un ingrédient</button>
             <label>Préparation<textarea name="method" rows="7" required>${esc(recipe.method)}</textarea></label>
+            <details class="recipe-planning-fields">
+                <summary>Temps, matériel et transport</summary>
+                <div class="row recipe-form-row">
+                    <label>Temps actif (min)<input name="active_minutes" type="number" min="1" max="1440" value="${recipe.planning?.active_minutes ?? ''}"></label>
+                    <label>Temps total (min)<input name="total_minutes" type="number" min="1" max="1440" value="${recipe.planning?.total_minutes ?? ''}"></label>
+                </div>
+                <label>Matériel<input name="equipment" value="${esc((recipe.planning?.equipment || []).join(', '))}" placeholder="Casserole, four…"></label>
+                <label>Facile à emporter<select name="portable">
+                    <option value="">Non renseigné</option>
+                    <option value="yes" ${recipe.planning?.portable === true ? 'selected' : ''}>Oui</option>
+                    <option value="no" ${recipe.planning?.portable === false ? 'selected' : ''}>Non</option>
+                </select></label>
+            </details>
             <fieldset class="recipe-freezer-fields"><legend>Congélation</legend>
                 <label class="check-row"><input type="checkbox" name="freezer_ok" ${recipe.freezer_ok ? 'checked' : ''}> Le plat complet se congèle bien</label>
                 <label>Conseil pour la congélation ou le réchauffage<textarea name="freezer_note" rows="2" maxlength="500">${esc(recipe.freezer_note || '')}</textarea></label>
@@ -255,10 +268,13 @@ function editRecipe(original) {
         $('#recipe-save-error').textContent = '';
         try {
             const fields = Object.fromEntries(new FormData(form));
+            const planning = {active_minutes:+fields.active_minutes || null, total_minutes:+fields.total_minutes || null,
+                equipment:fields.equipment.split(',').map(item => item.trim()).filter(Boolean)};
+            if (fields.portable) planning.portable = fields.portable === 'yes';
             await api('recipes', {
                 id:recipe.id || undefined, version:recipe.version, title:fields.title, method:fields.method,
                 servings:+fields.servings, tags:fields.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-                freezer_ok:form.elements.freezer_ok.checked, freezer_note:fields.freezer_note, ingredients,
+                freezer_ok:form.elements.freezer_ok.checked, freezer_note:fields.freezer_note, ingredients, planning,
             });
             $('#modal').close();
             await refresh();

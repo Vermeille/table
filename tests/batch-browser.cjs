@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
     await page.locator('#password').fill('guided-test');
     await page.getByRole('button',{name:/Entrer/}).click();
     await heading('Planning des repas');
-    await page.locator('[data-view=preferences]').click();
+    await page.locator('.nav [data-view=preferences]').click();
     await page.getByRole('checkbox',{name:/Prévoir des portions à congeler/}).check();
     await click('Enregistrer les préférences');
     await page.getByText('Préférences enregistrées',{exact:true}).waitFor();

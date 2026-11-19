@@ -11,6 +11,7 @@ function monday(d=new Date()){d=new Date(d);d.setDate(d.getDate()-(d.getDay()+6)
 async function api(path,data){let r=await fetch('/api/'+path,{method:data===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});let j=await r.json();if(r.status===401){login();throw Error(j.detail)}if(!r.ok)throw Error(j.detail||'La demande a échoué');return j}
 function login(){S=null;$('#app').innerHTML=`<form class="login" id="login"><div class="eyebrow">Votre cuisine, bien organisée</div><h1>Table<span style="color:var(--accent)">.</span></h1><p class="muted">Les bons repas commencent par un peu d’organisation.</p><label for="password">Mot de passe</label><input id="password" type="password" autocomplete="current-password" required autofocus><button class="primary">Entrer →</button><p id="login-error" role="alert"></p></form>`;$('#login').onsubmit=async e=>{e.preventDefault();try{await api('login',{password:$('#password').value});await refresh()}catch(e){$('#login-error').textContent=e.message}}}
 let stateRequest = 0;
+let pushedWeek = locationState.get('notification') === '1' ? initialWeek : null;
 let renderedState = '';
 let groceryWrites = Promise.resolve(true);
 let savingGroceryFields = 0;
@@ -21,11 +22,19 @@ async function refresh(renderAll = true) {
     const state = await api('state?week=' + requestedWeek);
     if (id !== stateRequest || requestedWeek !== week) return;
     S = state;
+    if (requestedWeek === pushedWeek && S.weekly?.status === 'ready') {
+        const job = await api(`weekly/${requestedWeek}/seen`, {});
+        if (id !== stateRequest || requestedWeek !== week) return;
+        pushedWeek = null;
+        S.weekly = job;
+        if (S.weekly_notice?.id === requestedWeek) S.weekly_notice = null;
+    }
     if (renderAll) render();
     else updateChat();
 }
 function overview() {
     return JSON.stringify([S.week, S.fill_job, S.recipes, S.learning, S.chronodrive_connected, S.freezer, S.kitchen, S.preferences,
+        S.weekly, S.weekly_notice, S.weekly_settings, S.weekly_next, S.cart_preview_stale,
         S.runs.filter(run => run.week === week).map(run => [run.id, run.status])]);
 }
 function emoji(r){let t=(r.title+' '+r.tags.join(' ')).toLowerCase(),kind=/pizza/.test(t)?'pizza':/fish|salmon|poisson|saumon/.test(t)?'fish':/pasta|spaghetti|risotto|pâtes/.test(t)?'pasta':/chicken|poulet/.test(t)?'chicken':'greens';let shapes={pizza:'<path d="M19 48L32 12L51 46Z" fill="#dd9f55"/><path d="M23 43L33 19L46 43Z" fill="#e0bc67"/><circle cx="33" cy="29" r="3" fill="#b9573e"/><circle cx="38" cy="39" r="3" fill="#b9573e"/><path d="M26 39q2-7 6-4q-1 5-6 4" fill="#62845e"/>',fish:'<path d="M17 33q13-20 30-3l7-7v18l-7-7q-17 17-30-1" fill="#d68d72"/><path d="M29 24l-5 18m14-17l-6 19" stroke="#f3cbb7" stroke-width="2"/><circle cx="20" cy="32" r="1.5" fill="#384b3e"/>',pasta:'<path d="M20 27q8-12 21-3t-8 10t-8 10t23-5M19 34q-5 12 12 10t11-13t-15 7" fill="none" stroke="#d7ab54" stroke-width="5" stroke-linecap="round"/><path d="M37 23q8-8 12-2q-3 9-12 2" fill="#638360"/>',chicken:'<path d="M23 20q17-9 22 7q2 14-15 18l-9-11q-2-7 2-14" fill="#b57446"/><path d="M29 36l-9 12m-1-4l-4 3m4 1l-1 5" stroke="#e2ceab" stroke-width="5" stroke-linecap="round"/><path d="M42 43q6-8 10-4q-1 9-10 4" fill="#62845e"/>',greens:'<path d="M18 25q12-13 18 3q-2 11-18-3M35 20q13-3 13 11q-10 5-13-11M22 41q-1-15 13-11q8 12-13 11M38 45q-9-8 4-15q13 7-4 15" fill="#7d9c6c"/><circle cx="24" cy="27" r="4" fill="#c8684f"/><circle cx="42" cy="39" r="4" fill="#c8684f"/><circle cx="35" cy="31" r="3" fill="#ddbd7b"/>'};return `<svg width="62" height="62" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="#fffdf5"/><circle cx="32" cy="32" r="22" fill="none" stroke="#e4e2d4"/>${shapes[kind]}</svg>`}
@@ -35,10 +44,31 @@ function render(){if(!S)return;
     if (previousInput) chatDrafts.set(previousInput.dataset.draft, previousInput.value);
     const url = new URL(location.href);
     url.searchParams.set('week', week);
+    if (!pushedWeek) url.searchParams.delete('notification');
     if (['shopping','freezer'].includes(view)) url.searchParams.set('view', view);
     else url.searchParams.delete('view');
     history.replaceState(null, '', url);
-    lastRuns='';const nav=[['week','◷','Cette semaine'],['cookbook','▤','Recettes'],['shopping','⌑','Courses'],['freezer','❄','Congélateur'],['saved','▦','Semaines enregistrées'],['preferences','♡','Préférences'],['skills','✧','Savoir-faire & apprentissage'],['settings','⚙','Connexions']];$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="logo">Table<span>.</span></div><div class="tagline">Moins de « qu’est-ce qu’on mange ? »</div><nav class="nav">${nav.map(([v,i,t])=>`<button data-view="${v}" class="${view===v?'active':''}">${i} &nbsp; ${t}</button>`).join('')}</nav><div class="side-bottom">Pour les repas du quotidien.<br>Vos données restent sur votre serveur.<br><button class="small" data-action="logout">Se déconnecter</button></div></aside><div class="workspace ${['shopping','freezer'].includes(view)?'workflow-workspace':''}"><main class="main">${S.setup_error?`<div class="notice">La configuration est à terminer. Ouvrez Connexions pour installer les profils Hermes.<br>${esc(S.setup_error)}</div>`:''}${main()}</main>${chat()}</div></div><button class="mobile-chat ${['shopping','freezer'].includes(view)?'workflow-chat-toggle':''} ${chatOpen?'chat-visible':''}" data-action="toggle-chat" aria-expanded="${chatOpen}">${chatOpen?'Fermer la discussion':'✧ Assistant cuisine'}</button>`;bind();updateChat();
+    lastRuns = '';
+    const nav = [['week','◷','Planning'],['cookbook','▤','Recettes'],['shopping','⌑','Courses'],
+        ['freezer','❄','Congélateur'],['saved','▦','Semaines enregistrées'],['preferences','♡','Préférences'],
+        ['skills','✧','Savoir-faire & apprentissage'],['settings','⚙','Connexions']];
+    const navButton = ([id, icon, label]) => `<button data-view="${id}" class="${view===id?'active':''}"><span aria-hidden="true">${icon}</span> ${label}</button>`;
+    const focusedWorkspace = ['week','shopping','freezer'].includes(view);
+    $('#app').innerHTML = `<div class="shell"><aside class="sidebar">
+        <div class="logo">Table<span>.</span></div>
+        <nav class="nav" aria-label="Navigation principale">
+            ${nav.slice(0,3).map(navButton).join('')}
+            <div class="secondary-navigation"><button class="mobile-menu-button" data-action="mobile-menu" aria-expanded="false" aria-controls="secondary-links">Menu</button>
+                <div class="secondary-links" id="secondary-links">${nav.slice(3).map(navButton).join('')}
+                    <button class="mobile-logout" data-action="logout">Se déconnecter</button></div>
+            </div>
+        </nav>
+        <div class="side-bottom">Carnet et plannings sur votre serveur.<br><button class="small" data-action="logout">Se déconnecter</button></div>
+        </aside><div class="workspace ${focusedWorkspace?'workflow-workspace':''} ${view==='week'?'planning-workspace':''}">
+        <main class="main">${S.setup_error?`<div class="notice">La configuration est à terminer. Ouvrez Connexions pour installer les profils Hermes.<br>${esc(S.setup_error)}</div>`:''}${weeklyNotice()}${main()}</main>${chat()}</div></div>
+        <button class="mobile-chat ${focusedWorkspace?'workflow-chat-toggle':''} ${chatOpen?'chat-visible':''}" data-action="toggle-chat" aria-expanded="${chatOpen}">${chatOpen?'Fermer la discussion':'✧ Assistant cuisine'}</button>`;
+    bind();
+    updateChat();
     $('#chat-input').value = chatDrafts.get($('#chat-input').dataset.draft) || '';
     if(view==='shopping' && shoppingScreen()==='products') hydrateProductImages();
 }
@@ -47,13 +77,16 @@ function heading(eyebrow,title,sub,action=''){return `<div class="topline"><div>
 function weekView() {
     const w = S.week;
     return `<div class="topline plan-heading"><h1 id="flow-title" tabindex="-1">Planning des repas</h1>
-        <button data-action="plan-chat">✧ M’aider à planifier</button></div>
+        <div class="row plan-heading-actions">
+            ${week !== S.weekly_upcoming ? '<button data-action="weekly-upcoming">Semaine prochaine →</button>' : ''}
+            <button data-action="plan-chat" class="small">✧ Assistant</button>
+        </div></div>
         <div class="weeknav">
             <button class="icon" data-action="prev-week" aria-label="Semaine précédente">←</button>
             <strong>${fmt(week)} – ${fmt(local(dayDate(6)), {day:'numeric',month:'short'})}</strong>
             <button class="icon" data-action="next-week" aria-label="Semaine suivante">→</button>
             <input aria-label="Choisir une semaine" id="week-picker" type="date" value="${week}">
-        </div>` + weekActions() + batchAgenda() + `<div class="weekgrid ${w.batch ? 'batch-weekgrid' : ''}">${Array.from({length: 7}, (_, day) => {
+        </div>` + weeklyOverview() + weekActions() + batchAgenda() + `<div class="weekgrid ${w.batch ? 'batch-weekgrid' : ''}">${Array.from({length: 7}, (_, day) => {
             const slots = w.slots.filter(slot => slot.day === day);
             return `<section class="day"><div class="day-head"><span>${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][day]}</span>
                 <span class="day-num">${dayDate(day).getDate()}</span></div>${slots.map(meal).join('')}
@@ -79,15 +112,16 @@ function meal(slot) {
 }
 function cookbook(){let rs=S.recipes.filter(r=>searchText(r.title+' '+r.tags.join(' ')).includes(searchText(query)));return heading('Des recettes à garder','Votre carnet de recettes.','Vos plats préférés, et ceux qui le deviendront.',`<button class="primary" data-action="new-recipe">+ Ajouter une recette</button>`)+`<input class="search" id="recipe-search" type="search" placeholder="Rechercher une recette ou une étiquette…" value="${esc(query)}"><div class="recipe-grid">${rs.map(r=>`<article class="recipe-card" tabindex="0" role="button" data-recipe="${r.id}"><div class="recipe-cover">${emoji(r)}</div><div class="recipe-body"><h3>${esc(r.title)}</h3><p class="muted" style="font-size:11px">Pour ${r.servings} · ${recipeNutritionCaption(r)}</p><div class="tags">${r.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div></article>`).join('')}</div>${!rs.length?'<p class="muted">Aucune recette trouvée. Essayez une autre recherche ou demandez à l’assistant d’en créer.</p>':''}`}
 function saved(){return heading('Les semaines se suivent','Vos semaines à retrouver.','Vos plannings conservent les recettes telles que vous les avez validées.')+`<div class="saved-list">${S.weeks.length?S.weeks.slice().reverse().map(w=>`<button data-week="${w.id}"><strong>Semaine du ${fmt(w.id)}</strong><span>${w.count} repas · ${w.approved?'Validée':'Brouillon'} →</span></button>`).join(''):'<div class="panel"><p class="muted">Vos semaines apparaîtront ici dès que vous commencerez à les préparer.</p></div>'}</div>`}
-function preferences(){return heading('À votre goût','Vos envies, vos habitudes.','Des indications enregistrées que vos assistants consultent à chaque demande.')+`<form id="preferences-form">${[['planner','Vos repas','Goûts, contraintes alimentaires, nombre de personnes, temps disponible et variété.'],['shopper','Vos courses','Réserves à la maison, quantités à acheter et habitudes de courses.'],['cart','Vos produits','Marques préférées, formats, budget, bio et produits de remplacement.']].map(([id,t,h])=>`<div class="panel"><h2>${t}</h2><p class="muted">${h}</p><textarea name="${id}" rows="5">${esc(S.preferences[id])}</textarea></div>`).join('')}${batchSettingsFields()}<button class="primary">Enregistrer les préférences</button></form>`}
+function preferences(){return heading('À votre goût','Vos envies, vos habitudes.','Des indications enregistrées que vos assistants consultent à chaque demande.')+`${weeklyForm()}${notificationSettings()}<form id="preferences-form">${[['planner','Vos repas','Goûts, contraintes alimentaires, nombre de personnes, temps disponible et variété.'],['shopper','Vos courses','Réserves à la maison, quantités à acheter et habitudes de courses.'],['cart','Vos produits','Marques préférées, formats, budget, bio et produits de remplacement.']].map(([id,t,h])=>`<div class="panel"><h2>${t}</h2><p class="muted">${h}</p><textarea name="${id}" rows="5">${esc(S.preferences[id])}</textarea></div>`).join('')}${batchSettingsFields()}<button class="primary">Enregistrer les préférences</button></form>`}
 function skills(){return heading('Une cuisine qui apprend','De mieux en mieux, chaque semaine.','Chaque assistant conserve ce qu’il apprend de vos retours. Vous pouvez le modifier ou retrouver une version précédente.')+S.learning.map(l=>`<div class="panel skill-card"><div class="row between"><h2>${roleName(l.id)}</h2><span class="version">Version ${l.version}</span></div><p class="muted">Dites à l’assistant ce qui vous a plu, ou écrivez vos indications ici.</p><textarea rows="5" id="learning-${l.id}">${esc(l.text)}</textarea><div class="row" style="margin-top:12px"><button class="primary" data-learning="${l.id}">Enregistrer les indications</button><button data-history="${l.id}">Historique des versions</button></div></div>`).join('')}
 function settingsView(){let s=settingsCache;return heading('Tout est connecté','Les connexions de votre cuisine.','Table conserve vos données et installe ses propres profils dans Hermes.')+(!s?'<p class="muted">Chargement des connexions…</p>':`<div class="settings-grid"><form class="panel full" id="connection-form"><h2>Hermes</h2><p class="muted">Compatible avec une nouvelle instance Hermes. Le volume de données partagé est défini à l’installation ; ces réglages permettent de s’y connecter.</p><label>Adresse de l’API Hermes</label><input name="hermes_url" value="${esc(s.hermes_url)}" required><label>Adresse de Table accessible depuis Hermes</label><input name="app_url" value="${esc(s.app_url)}" required><label>Clé de la passerelle (laisser vide pour conserver)</label><input name="gateway_key" type="password" autocomplete="off"><label>Fournisseur</label><select name="provider"><option value="openai-codex" ${s.provider==='openai-codex'?'selected':''}>Abonnement OpenAI / Codex</option><option value="openai" ${s.provider==='openai'?'selected':''}>API OpenAI / service compatible</option></select><label>Modèle</label><input name="model" value="${esc(s.model)}" required><label>Adresse de base de l’API (facultatif)</label><input name="base_url" value="${esc(s.base_url)}"><label>Clé API du modèle (laisser vide pour conserver)</label><input name="api_key" type="password" autocomplete="off"><div class="row" style="margin-top:20px"><button class="primary">Installer / mettre à jour les profils</button><button type="button" data-action="codex-login">Se connecter avec OpenAI ↗</button></div><div id="oauth"></div></form><form class="panel full" id="chrono-form"><div class="row between"><h2>Chronodrive</h2><span class="badge ${s.chronodrive.connected?'':'warm'}">${s.chronodrive.connected?'Identifiants enregistrés':'Non connecté'}</span></div><p class="muted">Connectez votre compte pour rechercher les produits de votre magasin et préparer votre panier. Vos identifiants sont chiffrés dans Table et ne sont pas communiqués à l’assistant.</p><label>Adresse e-mail</label><input type="email" name="email" autocomplete="username" value="${esc(s.chronodrive.email)}" required><label>Mot de passe ${s.chronodrive.connected?'(laisser vide pour conserver)':''}</label><input name="password" type="password" autocomplete="new-password"><label>Votre magasin Chronodrive</label><select name="store_id" required><option value="">Choisissez votre magasin…</option>${storeOptions.map(x=>`<option value="${esc(x.id)}" ${x.id===s.chronodrive.store_id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><p class="muted" style="font-size:11px;margin-top:8px">La liste provient du site Chronodrive. Aucun identifiant à chercher vous-même.</p><div class="row" style="margin-top:20px"><button class="primary">Enregistrer la connexion Chronodrive</button><button type="button" data-action="test-chrono">Tester la connexion</button></div><p class="muted" style="font-size:11px;margin-top:12px">Enregistrer vos identifiants ne modifie pas votre panier. Les produits et les quantités seront à valider séparément. Vous gardez la main sur la commande.</p></form></div>`)}
 function chat(){let title={cookbook:'Votre compagnon de recettes',planner:'Un coup de main en cuisine',shopper:'Votre assistant courses',cart:'Votre assistant Chronodrive'}[role];return `<aside class="chat ${chatOpen?'open':''}"><div class="chat-head"><div class="eyebrow">Un coup de main avec Hermes</div><h3>${title}</h3><p class="muted" style="font-size:11px;margin:0">Échangez, ajustez, régalez-vous.</p><select id="chat-role" aria-label="Assistant">${['cookbook','planner','shopper','cart'].map(r=>`<option value="${r}" ${r===role?'selected':''}>${roleName(r)}</option>`).join('')}</select></div><div class="chat-messages" id="chat-messages"></div><form class="chat-compose" id="chat-form"><textarea id="chat-input" data-draft="${week}/${role}" aria-label="Votre message à l’assistant" placeholder="${role==='cookbook'?'Ajoute plusieurs sortes de pizzas…':role==='planner'?'Une semaine plus légère, avec deux repas végétariens…':role==='shopper'?'On a déjà de l’huile d’olive et du riz…':'Je préfère cette marque. Cherche des formats économiques…'}" required maxlength="15000"></textarea><div class="row"><span class="chat-hint">Les modifications sont enregistrées dans Table.</span><button class="primary small" id="send">Envoyer ↗</button></div></form></aside>`}
-function updateChat(){let el=$('#chat-messages');if(!el||!S)return;let runs=S.runs.filter(r=>r.role===role&&r.week===week).slice(0,15).reverse();let signature=JSON.stringify(runs)+role+JSON.stringify(nativePrompts);if(signature===lastRuns)return;lastRuns=signature;el.innerHTML=(!runs.length?`<div class="bubble"><span class="who">${roleName(role)}</span>${role==='planner'?'Dites-moi de quelle semaine vous avez envie. Je préparerai un planning à partir de vos recettes et préférences.':role==='cookbook'?'Enrichissons votre carnet. Demandez de nouvelles recettes, une version plus équilibrée ou une variante à votre goût.':role==='shopper'?'Une fois vos repas validés, je rassemblerai les ingrédients en tenant compte de vos préférences de courses.':'Une fois les courses validées, je chercherai les produits de votre magasin Chronodrive pour vous les proposer.'}</div>`:'')+runs.map(r=>`<div class="bubble user"><span class="who">Vous</span>${esc(r.prompt)}</div><div class="bubble"><span class="who">${esc(role)} · ${statusName(r.status)}</span>${esc(r.output||r.error||(r.status==='running'?'Je m’en occupe…':'En attente…'))}${['running','queued','waiting_for_approval'].includes(r.status)?`<p><button class="small" data-stop="${r.id}">Arrêter</button></p>`:''}</div>`).join('')+nativePrompts.map((p,n)=>`<div class="approval"><strong>${p.kind==='clarify'?'Une question pour vous':'Vérifiez cette action'}</strong><pre>${esc(p.question||p.description||p.command)}</pre>${p.kind==='approval'?`<button class="small" data-native="${n}" data-choice="once">Autoriser une fois</button> <button class="small" data-native="${n}" data-choice="deny">Refuser</button>`:`<input id="clarify-${n}" aria-label="Répondre"><button class="small" data-native="${n}">Répondre</button>`}</div>`).join('');el.scrollTop=el.scrollHeight;let active=runs.some(r=>['running','queued','waiting_for_approval','submitting'].includes(r.status));if($('#send'))$('#send').disabled=active;bindChatActions()}
+function updateChat(){let el=$('#chat-messages');if(!el||!S)return;let runs=S.runs.filter(r=>!r.automated&&r.role===role&&r.week===week).slice(0,15).reverse();let signature=JSON.stringify(runs)+role+JSON.stringify(nativePrompts);if(signature===lastRuns)return;lastRuns=signature;el.innerHTML=(!runs.length?`<div class="bubble"><span class="who">${roleName(role)}</span>${role==='planner'?'Dites-moi de quelle semaine vous avez envie. Je préparerai un planning à partir de vos recettes et préférences.':role==='cookbook'?'Enrichissons votre carnet. Demandez de nouvelles recettes, une version plus équilibrée ou une variante à votre goût.':role==='shopper'?'Une fois vos repas validés, je rassemblerai les ingrédients en tenant compte de vos préférences de courses.':'Une fois les courses validées, je chercherai les produits de votre magasin Chronodrive pour vous les proposer.'}</div>`:'')+runs.map(r=>`<div class="bubble user"><span class="who">Vous</span>${esc(r.prompt)}</div><div class="bubble"><span class="who">${esc(role)} · ${statusName(r.status)}</span>${esc(r.output||r.error||(r.status==='running'?'Je m’en occupe…':'En attente…'))}${['running','queued','waiting_for_approval'].includes(r.status)?`<p><button class="small" data-stop="${r.id}">Arrêter</button></p>`:''}</div>`).join('')+nativePrompts.map((p,n)=>`<div class="approval"><strong>${p.kind==='clarify'?'Une question pour vous':'Vérifiez cette action'}</strong><pre>${esc(p.question||p.description||p.command)}</pre>${p.kind==='approval'?`<button class="small" data-native="${n}" data-choice="once">Autoriser une fois</button> <button class="small" data-native="${n}" data-choice="deny">Refuser</button>`:`<input id="clarify-${n}" aria-label="Répondre"><button class="small" data-native="${n}">Répondre</button>`}</div>`).join('');el.scrollTop=el.scrollHeight;let active=S.runs.filter(r=>r.role===role).some(r=>['running','queued','waiting_for_approval','submitting'].includes(r.status));if($('#send'))$('#send').disabled=active;bindChatActions()}
 function bindChatActions(){document.querySelectorAll('[data-stop]').forEach(e=>e.onclick=()=>safe(async()=>{await api(`runs/${e.dataset.stop}/stop`,{});toast('Arrêt demandé')}));document.querySelectorAll('[data-native]').forEach(e=>{let p=structuredClone(nativePrompts[+e.dataset.native]);e.onclick=()=>safe(async()=>{await api(`runs/${p.run_id}/${p.kind}`,{request_id:p.prompt_id,execution_generation:p.execution_generation,choice:e.dataset.choice,answer:$('#clarify-'+e.dataset.native)?.value});nativePrompts=[];lastRuns='';updateChat()})})}
 async function safe(fn){try{await fn()}catch(e){toast(e.message)}}
 function bind(){
     bindBatch();
+    bindWeekly();
     document.querySelectorAll('[data-stage]').forEach(button => button.onclick = () => {
         if (!flowBusy) selectStage(button.dataset.stage);
     });document.querySelectorAll('[data-match-grocery]').forEach(e=>e.onclick=()=>chooseProduct(e.dataset.matchGrocery));document.querySelectorAll('[data-cart-decision]').forEach(e=>e.onclick=()=>safe(()=>cartDecision(e.dataset.groceryId,e.dataset.cartDecision)));document.querySelectorAll('[data-view]').forEach(e=>e.onclick=()=>safe(()=>navigate(e.dataset.view)));document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>safe(()=>action(e.dataset.action)));document.querySelectorAll('[data-recipe]').forEach(e=>{e.onclick=()=>showRecipe(e.dataset.recipe,e.dataset.slot);e.onkeydown=k=>{if(k.key==='Enter')e.click()}});document.querySelectorAll('[data-week]').forEach(e=>e.onclick=()=>safe(async()=>{week=e.dataset.week;view='week';await refresh()}));document.querySelectorAll('[data-add-day]').forEach(e=>e.onclick=()=>pickMeal(+e.dataset.addDay));document.querySelectorAll('[data-swap]').forEach(e=>e.onclick=()=>{let [d,m]=e.dataset.swap.split('-');pickMeal(+d,m)});document.querySelectorAll('[data-remove]').forEach(e=>e.onclick=()=>safe(async()=>{await saveSlots(S.week.slots.filter(s=>`${s.day}-${s.meal}`!==e.dataset.remove))}));document.querySelectorAll('[data-servings]').forEach(e=>e.onchange=()=>safe(async()=>{let slots=structuredClone(S.week.slots);slots.find(s=>`${s.day}-${s.meal}`===e.dataset.servings).servings=+e.value;await saveSlots(slots)}));
@@ -171,11 +205,23 @@ function queueGroceryEdit(id, field, value) {
 async function wf(action){await api(`week/${week}/${action}`,{version:S.week.version});await refresh()}
 async function action(a) {
     if (flowBusy) return;
+    if (a === 'mobile-menu') {
+        const toggle = $('[data-action=mobile-menu]');
+        toggle.setAttribute('aria-expanded', toggle.getAttribute('aria-expanded') !== 'true');
+        return;
+    }
     if (['continue-shopping', 'go-products', 'edit-groceries', 'stop-editing-groceries', 'approve-week',
          'prepare-groceries', 'approve-groceries', 'find-products', 'approve-and-fill',
          'fill-cart', 'resume-fill', 'pause-fill', 'reopen-cart'].includes(a)) {
         return shoppingAction(a);
     }
+    if (a === 'weekly-upcoming') {
+        week = S.weekly_upcoming;
+        flowError = '';
+        await refresh();
+        return;
+    }
+    if (a.startsWith('weekly-')) return weeklyAction(a);
     if (a === 'logout') { await api('logout', {}); chatDrafts.clear(); login(); return; }
     if (a === 'toggle-chat') { chatOpen = !chatOpen; render(); return; }
     if (a === 'prev-week' || a === 'next-week') {
@@ -244,7 +290,8 @@ function showRecipe(id, key) {
         `<li><strong>${quantity.format(item.quantity * cook / recipe.servings)} ${esc(item.unit)}</strong> &nbsp; ${esc(item.name)}<small class="ingredient-detail">${ingredientNutrition(recipe.nutrition_report?.rows[index], cook / recipe.servings)}</small></li>`
     ).join('')}</ul><h2>En cuisine</h2><div class="recipe-detail">${esc(recipe.method)}</div>`;
     modal(`<div class="eyebrow">${recipe.tags.map(esc).join(' · ')}</div><h1>${esc(recipe.title)}</h1>
-        <p class="muted">Pour ${quantity.format(cook)}${slot ? ' · Recette enregistrée avec cette semaine' : ''}</p>${planNote}
+        <p class="muted">Pour ${quantity.format(cook)}${recipe.planning?.active_minutes ? ` · ${recipe.planning.active_minutes} min actives` : ''}${recipe.planning?.total_minutes ? ` · ${recipe.planning.total_minutes} min au total` : ''}</p>${planNote}
+        ${slot ? '<p class="muted">Recette enregistrée avec cette semaine.</p>' : ''}
         ${recipeNutrition(recipe.nutrition_report)}
         ${recipe.freezer_ok ? `<p class="recipe-freezer"><strong>Adaptée à la congélation</strong>${recipe.freezer_note ? ' · ' + esc(recipe.freezer_note) : ''}</p>` : ''}
         ${frozen ? `<details class="batch-list"><summary>Voir la recette du plat</summary>${ingredients}</details>` : ingredients}
@@ -274,7 +321,7 @@ async function tick() {
             !document.activeElement?.matches('input,textarea,select')) render();
         const screen = view === 'shopping' ? shoppingScreen() : '';
         const observedRole = screen === 'groceries' && !chatOpen ? 'shopper' : screen === 'products' && !chatOpen ? 'cart' : role;
-        const active = S.runs.find(run => run.role === observedRole && run.week === week &&
+        const active = S.runs.find(run => !run.automated && run.role === observedRole && run.week === week &&
             ['running', 'waiting_for_approval'].includes(run.status));
         if (active) {
             try {

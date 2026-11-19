@@ -54,9 +54,10 @@ function flowAlert() {
 function weekActions() {
     const w = S.week;
     const label = w.slots.length === 1 ? '1 repas prévu' : `${w.slots.length} repas prévus`;
+    const weeklyDraft = S.weekly?.status === 'ready' && w.weekly_prepared;
     const next = w.approved
         ? flowButton('continue-shopping', currentStage() === 'cart' ? 'Voir le panier →' : 'Continuer les courses →', {primary: true})
-        : flowButton('approve-week', 'Valider les repas et préparer les courses →', {primary: true, disabled: !w.slots.length});
+        : flowButton('approve-week', weeklyDraft ? 'Valider les repas et voir les courses →' : 'Valider les repas et préparer les courses →', {primary: true, disabled: !w.slots.length});
     return workflowNav('week') + flowActions(label, w.approved ? 'Semaine validée' : '', next) + flowAlert();
 }
 
@@ -76,7 +77,7 @@ function shopping() {
 }
 
 function latestRun(assistant) {
-    return S.runs.find(run => run.role === assistant && run.week === S.week.id);
+    return S.runs.find(run => !run.automated && run.role === assistant && run.week === S.week.id);
 }
 
 function assistantStatus(assistant, busyText, waitingForResult = true) {
@@ -122,8 +123,9 @@ function groceryStage() {
             : flowButton('edit-groceries', 'Modifier la liste', {disabled: S.week.cart?.status === 'filling'})
                 + flowButton('go-products', 'Voir les produits →', {primary: true});
     } else {
-        const label = !required ? 'Valider les courses' : S.chronodrive_connected === false
-            ? 'Valider les courses →' : 'Valider les courses et chercher les produits →';
+        const label = !required ? 'Valider les courses' : S.week.cart?.weekly_preview
+            ? 'Valider les courses et voir les produits →' : S.chronodrive_connected === false
+                ? 'Valider les courses →' : 'Valider les courses et chercher les produits →';
         controls = flowButton('approve-groceries', label, {primary: true, disabled: busy});
     }
     const header = flowActions(summary, g.approved ? 'Liste validée' : !g.items.length ? 'Aucun ingrédient à acheter pour ces repas.' : 'Cochez les ingrédients déjà en réserve.', controls);
@@ -156,6 +158,10 @@ function productStage() {
     if (!required.length) {
         return flowActions('Aucun ingrédient à commander', 'Les courses sont validées.', flowButton('edit-groceries', 'Revoir la liste'));
     }
+    if (S.cart_preview_stale) {
+        return flowActions('Votre magasin a changé', 'Recherchez les produits disponibles dans le nouveau magasin.',
+            flowButton('find-products', 'Rechercher dans ce magasin', {primary:true, disabled:busy})) + status;
+    }
     if (!c && S.chronodrive_connected === false) {
         return flowActions('Connectez votre compte Chronodrive', 'Choisissez votre magasin pour rechercher les produits.',
             '<button class="primary" data-view="settings">Ouvrir les connexions →</button>');
@@ -169,6 +175,7 @@ function productStage() {
 
 function productCard(match, ingredient, editable) {
     const price = Number.isFinite(match.price) ? euro.format(match.price) : '';
+    const trustedSource = /^https:\/\/www\.(auchan|bonduelle)\.fr\//.test(match.pack_source || '') ? match.pack_source : null;
     return `<article class="product">
         ${productPhoto(match.productId)}
         <div class="product-info">
@@ -176,6 +183,7 @@ function productCard(match, ingredient, editable) {
             <strong>${esc(match.name)}</strong>
             <div class="product-format">${[match.brand, match.size].filter(Boolean).map(esc).join(' · ')}</div>
             <div class="product-quantity">${match.quantity} paquet${match.quantity === 1 ? '' : 's'}${price ? ` · ${price} / paquet` : ''}</div>
+            ${typeof match.verified_quantity === 'boolean' ? `<small class="product-sizing">${esc(match.note)}${trustedSource ? ` <a href="${esc(trustedSource)}" target="_blank" rel="noreferrer">Source</a>` : ''}</small>` : ''}
             ${editable && ingredient ? `<button class="product-change" data-match-grocery="${esc(ingredient.id)}" aria-label="Remplacer ${esc(match.name)}">Remplacer</button>` : ''}
         </div>
     </article>`;
@@ -330,7 +338,7 @@ async function shoppingAction(action) {
             await flowRequest(action, async () => {
                 await wf('approve-groceries');
                 selectStage('products');
-                if (S.chronodrive_connected !== false && S.week.groceries.items.some(item => !item.checked)) {
+                if (!S.week.cart && S.chronodrive_connected !== false && S.week.groceries.items.some(item => !item.checked)) {
                     await startAssistant('cart', productPrompt);
                 }
             });

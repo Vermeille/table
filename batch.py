@@ -106,8 +106,8 @@ def inventory(c, week=None):
     ]}
 
 
-def planning_context(c, week):
-    config = settings(D.get(c, 'preferences', 'main'))
+def planning_context(c, week, config=None):
+    config = config if config is not None else settings(D.get(c, 'preferences', 'main'))
     stock = inventory(c, week)
     total = sum(lot['available'] for lot in stock['lots'])
     automatic = min(total // 2, max(0, total - (config['reserve'] + 1) // 2)) if config['enabled'] else 0
@@ -215,6 +215,7 @@ def build(c, week, slots, config, previous, activity):
     # Match the existing menu first. Mix containers from the same recipe version when needed.
     # Prefer using older lots while giving each cooking day a chance to stay light.
     frozen_days = {slot['day'] for slot in ordered_slots if tasks.get(key(slot), {}).get('source') == 'stock'}
+    preferred = set(config.get('prefer_frozen_days',[]))
     if config['enabled']:
         for lot in stock:
             if claims[lot['id']] <= 0:
@@ -226,7 +227,8 @@ def build(c, week, slots, config, previous, activity):
                 continue
             eligible = [slot for slot in candidates if slot['recipe_id'] == lot['recipe']['id']
                         and not slot.get('cook_fresh') and key(slot) not in tasks]
-            eligible.sort(key=lambda slot: (slot['day'] in frozen_days, slot['day'], MEAL_ORDER[slot['meal']]))
+            eligible.sort(key=lambda slot: (slot['day'] not in preferred, slot['day'] in frozen_days,
+                                            slot['day'], MEAL_ORDER[slot['meal']]))
             for slot in eligible:
                 quantity = whole_servings(slot)
                 if not quantity or quantity > budget or quantity > sum(claims[part['id']] for part in alternatives):

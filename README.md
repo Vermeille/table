@@ -4,6 +4,8 @@ The interface, recipe defaults and user manual are in French. Existing English s
 
 A self-hosted meal-planning app backed by Hermes. The app owns the cookbook, preferences, learned guidance, weekly plans, recipe snapshots, approvals and shopping-operation records. Hermes supplies the reasoning and tool execution through four disposable, app-managed profiles. There is no dependency on Hermes Studio, a preconfigured personal profile, or a hosted UI.
 
+Table can prepare next week's draft on a local schedule. The planning profile proposes menus from the cookbook, and Table compares them against household preferences, freezer inventory and the actual cooking tasks. Table calculates consolidated groceries from scheduled batch quantities. The Chronodrive profile can look up products ahead of review. The retailer cart changes when the owner starts an approved fill. Weekly reminders appear in Table and can also be delivered as Web Push notifications on devices that opt in.
+
 ## Install against a fresh Hermes gateway
 
 Tested with the Hermes runtime serving this deployment, image `nousresearch/hermes-agent:v0.22.5`. Hermes changes quickly; the profile helper and native Bot Chat API are the compatibility boundary. Table currently needs to run beside Hermes with access to its data volume, not merely a remote API URL: Hermes' execution API does not expose complete profile administration.

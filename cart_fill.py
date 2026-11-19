@@ -25,6 +25,7 @@ def start(week,version,identity,resume=False,approve=False):
         w=D.get(c,'week',week)
         if not w or w['version']!=version:raise ValueError('La sélection a changé. Rechargez avant de remplir le panier.')
         cart=w.get('cart') or {}
+        if cart.get('retailer_identity') and cart['retailer_identity']!=identity:raise ValueError('Le compte ou le magasin a changé. Relancez la recherche des produits.')
         if not w.get('approved') or not (w.get('groceries') or {}).get('approved') or not cart.get('matches') or cart_review.missing(w):raise ValueError('Validez d’abord la sélection complète des produits.')
         if any((D.get(c,'fill',r[0]) or {}).get('status') in ACTIVE for r in c.execute("SELECT id FROM docs WHERE kind='fill'").fetchall()):raise ValueError('Un remplissage est déjà en cours. Consultez sa progression.')
         if approve:

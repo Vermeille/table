@@ -8,6 +8,15 @@ try:
     session=c.ensure_session();a=p['action'];d=p.get('data',{})
     from chronodrive_products import normalize,product_id
     if a=='search':result=[normalize(x) for x in c.search_products(d['query'],session)[:15]]
+    elif a=='search_many':
+        from concurrent.futures import ThreadPoolExecutor
+        def search(query):
+            try:
+                found=[normalize(x) for x in c.search_products(query,session)[:15]]
+                return query,[x for x in found if x['stock']!='NO_STOCK'][:6]
+            except Exception:
+                return query,[]
+        with ThreadPoolExecutor(max_workers=4) as pool:result=dict(pool.map(search,d['queries']))
     elif a=='products':
         import time
         from pathlib import Path
@@ -18,7 +27,9 @@ try:
         def detail(id):
             cache=folder/(c.SITE_ID+'-'+id+'.json')
             try:
-                if cache.exists() and time.time()-cache.stat().st_mtime<3600:return json.loads(cache.read_text())
+                if not d.get('refresh') and cache.exists() and time.time()-cache.stat().st_mtime<3600:
+                    cached=json.loads(cache.read_text())
+                    if 'pack' in cached:return cached
                 item=normalize(c.product_details(id,session));item['productId']=id;cache.write_text(json.dumps(item,ensure_ascii=False));cache.chmod(0o600);return item
             except Exception:return {'productId':id,'image_url':None,'unavailable':True}
         with ThreadPoolExecutor(max_workers=6) as pool:result=list(pool.map(detail,ids))

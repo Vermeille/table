@@ -1,6 +1,7 @@
 import asyncio,contextlib,json,os,secrets,hmac,time,sys,subprocess,logging
 from pathlib import Path
-from datetime import date,timedelta
+from datetime import date,datetime,timedelta,timezone
+from urllib.parse import urlencode
 from fastapi import FastAPI,Request,HTTPException
 from fastapi.responses import JSONResponse,FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,20 +12,27 @@ import batch
 import recipe_nutrition as nutrition
 import cart_review
 import cart_fill
+import weekly
+import notifications
 from french import error as french_error
 ROOT=Path(__file__).parent;LOG=logging.getLogger('table');TOKENS={};SESSIONS={};PROVISION_LOCK=asyncio.Lock()
 PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
 HELP={
  'context':'{week?: YYYY-MM-DD}: recipes, preferences, learning, selected week',
  'get_recipe':'{id}', 'search_recipes':'{query}',
- 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:food catalog ID,grams_per_unit?:edible grams per unit,weight_reference?:existing sourced-weight key}],tags:[],method,freezer_ok?,freezer_note?}. Table retains matching fields for unchanged foods and recalculates nutrition. Use explicit nulls to clear individual fields. Submitted totals are ignored.',
+ 'save_recipe':'cookbook: {id,version (0 for new),title,servings,ingredients:[{name,quantity,unit,food_id?:food catalog ID,grams_per_unit?:edible grams per unit,weight_reference?:existing sourced-weight key}],tags:[],method,freezer_ok?,freezer_note?,planning?:{portable?,active_minutes?,total_minutes?,equipment?}}. Table retains matching fields for unchanged foods and recalculates nutrition. Use explicit nulls to clear individual fields. Submitted totals are ignored.',
  'search_foods':'{query}: French food catalog search (Ciqual and selected USDA references). Results have preparation state, macros per 100 g and any documented reference_weights.',
  'preview_recipe_nutrition':'cookbook: {id?:existing recipe ID,servings,ingredients:[same fields as save_recipe]}. Resolves existing links and weights and checks per-serving totals and missing data without writing.',
  'save_week':'planner: {week,version,slots:[{day:0..6,meal:dinner|lunch|breakfast,recipe_id,servings,cook_fresh?:true,freezer_lot_id?:ID (only for a lot explicitly chosen by owner)}]}. Returns computed batch and stock assignments.',
+ 'weekly_context':'planner: {week,request_id} from the scheduled task. Read household, exact slots, recipes and freezer stock.',
+ 'propose_weekly':'planner: {week,request_id,plans:[{slots:[{day,meal,recipe_id,servings}],note?}]} for the scheduled task. Evaluates and retains the best draft. This never approves a plan.',
  'grocery_base':'shopper: {week}: exact scaled ingredients for approved plan',
  'save_groceries':'shopper: {week,version,items:[{id?,name,quantity,unit,note,checked}]}',
  'search_products':'cart: {query}: real Chronodrive search', 'get_cart':'cart: {}',
+ 'search_products_batch':'cart: {queries:[short French names, max 24]}. Real Chronodrive search for several ingredients in parallel, with out-of-stock products omitted.',
  'propose_cart':'cart: {week,version,matches:[{grocery_id,productId,name,brand,size,quantity,price,note}]}',
+ 'weekly_groceries':'cart: {week,request_id} from the scheduled task. Read the exact list to match.',
+ 'propose_weekly_products':'cart: {week,request_id,matches:[{grocery_id,productId,name,brand,size,quantity,price,note}]} for the scheduled task. Saves a draft in Table and never touches the retailer cart.',
  'fill_status':'cart: {week}: read the durable app-managed cart fill; the owner starts or resumes it in the UI',
  'learn':'{text,version}: replace learned skill guidance after merging current explicit preferences'}
 def encrypted_read(name):
@@ -86,13 +94,19 @@ async def lifespan(app):
     migrate()
     batch.mark_seed_recipes(seeds)
     nutrition.migrate()
+    weekly.install_pack()
     try:
         for role in D.ROLES:await provision(role)
         await wait_profiles()
         app.state.provision_error=None
     except Exception as e:app.state.provision_error=french_error(str(getattr(e,'detail',e)));LOG.warning('Setup needed: %s',app.state.provision_error)
-    task=asyncio.create_task(poll());fill_task=asyncio.create_task(cart_fill.loop(chrono,cart_identity));yield;task.cancel();fill_task.cancel()
-    await asyncio.gather(task,fill_task,return_exceptions=True)
+    tasks = [asyncio.create_task(poll()), asyncio.create_task(cart_fill.loop(chrono,cart_identity)),
+             asyncio.create_task(weekly.loop(submit, lambda:bool(encrypted_read('chronodrive')), notifications.flush))]
+    try:
+        yield
+    finally:
+        for task in tasks: task.cancel()
+        await asyncio.gather(*tasks,return_exceptions=True)
 app=FastAPI(lifespan=lifespan)
 @app.middleware('http')
 async def auth(request,call_next):
@@ -129,7 +143,29 @@ def state(week:str=''):
         fill=D.get(c,'fill',(current.get('cart') or {}).get('fill_job_id',''))
         inventory = batch.inventory(c, week)
         kitchen = batch.kitchen(c, week)
-    return {'recipes':D.recipes(),'week':nutrition.project_week(current),'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'freezer':inventory,'kitchen':kitchen,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+        planning = weekly.overview(c, week, datetime.now(timezone.utc))
+    store=(current.get('cart') or {}).get('retailer_identity')
+    return {'recipes':D.recipes(),'week':nutrition.project_week(current),'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'freezer':inventory,'kitchen':kitchen,**planning,'cart_preview_stale':bool(store and store!=cart_identity()),'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
+@app.post('/api/weekly/settings')
+async def weekly_settings(req:Request):return weekly.save_settings(await req.json())
+@app.post('/api/weekly/{week}/prepare')
+async def weekly_prepare(week,req:Request):return weekly.owner_request(week,(await req.json())['version'])
+@app.post('/api/weekly/{week}/seen')
+def weekly_seen(week):return weekly.mark_seen(week)
+@app.get('/api/notifications/key')
+def notification_key():return {'public_key':notifications.public_key()}
+@app.post('/api/notifications/subscribe')
+async def notification_subscribe(req:Request):
+    notifications.register(await req.json(),req.headers.get('Origin') or str(req.base_url))
+    return {'enabled':True}
+@app.post('/api/notifications/unsubscribe')
+async def notification_unsubscribe(req:Request):
+    notifications.unregister((await req.json()).get('endpoint'))
+    return {'enabled':False}
+@app.post('/api/notifications/test')
+async def notification_test(req:Request):
+    await notifications.test((await req.json()).get('endpoint'))
+    return {'sent':True}
 @app.get('/api/foods')
 def foods(q: str):
     return nutrition.search(q)
@@ -275,16 +311,21 @@ async def chrono(action,data=None):
     except Exception:raise ValueError('Chronodrive client failed. No automatic retry was made.')
     if not r['ok']:raise ValueError(r['error'])
     return r['result']
-async def submit(role,week,prompt):
+async def submit(role,week,prompt,*,run_id=None,automated=False):
     if role not in D.ROLES:raise ValueError('Unknown assistant')
+    rid=run_id or D.uid()
     with D.db() as c:
+        previous=c.execute('SELECT status FROM runs WHERE id=?',(rid,)).fetchone()
+        if previous:return {'id':rid,'status':previous['status']}
         if c.execute("SELECT 1 FROM runs WHERE role=? AND status IN ('submitting','running','queued','waiting_for_approval')",(role,)).fetchone():raise ValueError('This assistant is already working. Wait for its answer.')
-        rid=D.uid();c.execute('INSERT INTO runs(id,role,week,status,prompt) VALUES(?,?,?,?,?)',(rid,role,week,'submitting',prompt))
+        c.execute('INSERT INTO runs(id,role,week,status,prompt,automated) VALUES(?,?,?,?,?,?)',(rid,role,week,'submitting',prompt,int(automated)))
     try:
-        listing=await hermes(role,'GET','/api/sessions?title=Bot%20Chat&include_hidden=1');s=next((s for s in listing.get('data',[]) if s.get('title')=='Bot Chat'),None)
+        title=f'Table · Semaine du {week}' if automated else 'Bot Chat'
+        listing=await hermes(role,'GET','/api/sessions?'+urlencode({'title':title,'include_hidden':1}));s=next((s for s in listing.get('data',[]) if s.get('title')==title),None)
         if not s:
-            raw=await hermes(role,'POST','/api/sessions',{'title':'Bot Chat','source':'bot_peer_dm'});s=raw.get('session',raw)
-        text=f'Semaine sélectionnée : {week}. Réponds en français et rédige tout nouveau contenu en français. Use your table-{role} skill and its CLI for all changes. Owner request: '+prompt
+            raw=await hermes(role,'POST','/api/sessions',{'title':title,'source':'bot_peer_dm'});s=raw.get('session',raw)
+        request_type='Tâche planifiée de Table' if automated else 'Demande du propriétaire'
+        text=f'Semaine sélectionnée : {week}. Réponds en français et rédige tout nouveau contenu en français. Utilise le CLI de la compétence table-{role}. {request_type} : '+prompt
         if len(text)>16000:raise ValueError('Please shorten this request.')
         r=await hermes(role,'POST','/v1/runs',{'session_id':s['id'],'input':text},{'Idempotency-Key':'table-'+rid})
         with D.db() as c:c.execute('UPDATE runs SET status=?,remote=?,session=? WHERE id=?',('running',r['run_id'],s['id'],rid))
@@ -313,7 +354,7 @@ async def worker(action,req:Request):
     token=req.headers.get('Authorization','').removeprefix('Bearer ');role=next((r for r,t in TOKENS.items() if hmac.compare_digest(token,t)),None)
     if not role:raise HTTPException(401,'Invalid worker credential')
     p=await req.json()
-    allowed={'cookbook':{'save_recipe','search_foods','preview_recipe_nutrition'},'planner':{'save_week'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status'}}
+    allowed={'cookbook':{'save_recipe','search_foods','preview_recipe_nutrition'},'planner':{'save_week','weekly_context','propose_weekly'},'shopper':{'grocery_base','save_groceries'},'cart':{'search_products','get_cart','propose_cart','cart_add','fill_status','weekly_groceries','propose_weekly_products','search_products_batch'}}
     common={'help','context','get_recipe','search_recipes','learn'}
     if action not in common|allowed[role]:raise HTTPException(403,'This assistant cannot perform that action')
     if action=='help':return {k:v for k,v in HELP.items() if k in common|allowed[role]}
@@ -332,21 +373,51 @@ async def worker(action,req:Request):
         existing = D.read('recipe',p['id']) if p.get('id') else None
         ingredients, totals, report = nutrition.calculate(p, previous=existing)
         return {'ingredients':ingredients, 'nutrition':totals, 'nutrition_report':report}
-    if action=='save_week':return D.update_week(p['week'],p)
+    if action=='save_week':return D.update_week(p['week'],p,agent=True)
+    if action=='weekly_context':
+        with D.db() as c:
+            job,_ = weekly.ensure_phase(c,p['week'],p['request_id'],'planning')
+            return weekly.context(c,job)
+    if action=='propose_weekly':return weekly.propose(p['week'],p['request_id'],p['plans'])
+    if action=='weekly_groceries':
+        with D.db() as c:
+            _,w = weekly.ensure_phase(c,p['week'],p['request_id'],'matching')
+            required=cart_review.required(w)
+            preview=w.get('cart') or {}
+            missing=cart_review.missing(w) if preview.get('retailer_identity')==cart_identity() else list(required)
+            return {'items':[required[id] for id in missing], 'preferences':D.get(c,'preferences','main')['cart'],
+                    'learning':D.get(c,'learning','cart')['text']}
+    if action=='propose_weekly_products':
+        with D.db() as c:
+            weekly.ensure_phase(c,p['week'],p['request_id'],'matching')
+        matches=weekly.validate_matches(p['matches'])
+        identity=cart_identity()
+        ids=list(dict.fromkeys(match['productId'] for match in matches))
+        products=await chrono('products',{'ids':ids,'refresh':True}) if ids else []
+        if identity!=cart_identity():raise ValueError('Le magasin Chronodrive a changé pendant la recherche.')
+        return weekly.propose_products(p['week'],p['request_id'],matches,products,identity)
     if action=='grocery_base':
         w=D.load_week(p['week'])
         if not w['approved']:raise ValueError('Approve the plan first.')
         return {'week_version':w['version'],'items':D.aggregate(w)}
     if action=='save_groceries':return D.groceries(p['week'],p['version'],p['items'])
     if action=='learn':
+        with D.db() as c:
+            if D.active_automation(c,role):raise ValueError('L’apprentissage est réservé aux retours du propriétaire.')
         result=D.learn(role,p['text'],p['version']);await provision(role);return result
     if action=='search_products':return await chrono('search',p)
+    if action=='search_products_batch':
+        queries=p.get('queries')
+        if not isinstance(queries,list) or not 1<=len(queries)<=24 or any(not isinstance(q,str) or not q.strip() or len(q)>100 for q in queries):
+            raise ValueError('Proposez de 1 à 24 noms courts à rechercher.')
+        return await chrono('search_many',{'queries':list(dict.fromkeys(q.strip() for q in queries))})
     if action=='get_cart':return await chrono('cart')
     if action=='fill_status':return cart_fill.job_for(D.load_week(p['week']))
     if action=='propose_cart':return propose_cart(p)
     if action=='cart_add':return await cart_add(p)
 def propose_cart(p):
     with D.db() as c:
+        if D.active_automation(c,'cart'):raise ValueError('Utilisez le brouillon de produits de la préparation hebdomadaire.')
         w=D.get(c,'week',p['week'])
         if not w or not (w.get('groceries') or {}).get('approved'):raise ValueError('Approve groceries before choosing products.')
         D.editable(w);excluded=(w.get('cart') or {}).get('excluded',[]);excluded_ids={x['grocery_id'] for x in excluded};items=set(cart_review.required(w))-excluded_ids;covered=set()
@@ -357,6 +428,7 @@ def propose_cart(p):
 async def cart_add(p):
     # Reserve before dispatch. Unknown outcomes are never replayed automatically.
     with D.db() as c:
+        if D.active_automation(c,'cart'):raise ValueError('La préparation hebdomadaire prépare seulement une sélection dans Table.')
         w=D.get(c,'week',p['week'])
         if not w or w['version']!=p['version'] or not (w.get('groceries') or {}).get('approved') or (w.get('cart') or {}).get('status')!='filling':raise ValueError('No active owner-approved cart fill for this version.')
         if c.execute("SELECT 1 FROM operations WHERE week=? AND status='unknown'",(p['week'],)).fetchone():raise ValueError('A previous cart operation needs reconciliation. Inspect Chronodrive before continuing.')
@@ -381,6 +453,8 @@ async def cart_add(p):
 @app.get('/api/cart/{week}/operations')
 def operations(week):
     with D.db() as c:return [dict(x) for x in c.execute('SELECT * FROM operations WHERE week=?',(week,))]
+@app.get('/service-worker.js')
+def service_worker():return FileResponse(ROOT/'static'/'service-worker.js',media_type='text/javascript',headers={'Cache-Control':'no-cache'})
 app.mount('/static',StaticFiles(directory=ROOT/'static'),name='static')
 @app.get('/')
 def index():return FileResponse(ROOT/'static'/'index.html')

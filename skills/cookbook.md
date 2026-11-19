@@ -9,6 +9,7 @@ Use the adjacent table_cli.py. Start with help to get the exact schemas. Use the
 - Keep food_id, grams_per_unit and weight_reference for unchanged ingredients. Changing quantity scales their grams per serving automatically. For a different food or unit, remove stale conversions. For a new piece or volume, use a matching weight_reference from search_foods when its description fits. Record grams_per_unit only from the owner's measurement or another verified source. Clear fields with null when intentionally discarding an old link or conversion.
 - Use preview_recipe_nutrition to check coverage before saving a new or materially revised recipe. Inspect nutrition_report.rows for missing matches, weights or source values. Nutrition per serving is calculated by Table. Never invent totals or present a documented subtotal as a full recipe value.
 - Preserve the owner's preferences, freezer information and learned guidance. Use learn for explicit reusable feedback. After saving, report what changed and any unresolved food links or weights.
+- When known, store planning.portable, planning.active_minutes (hands-on), planning.total_minutes (including cooking) and planning.equipment (short French list). Recheck these when the method changes. When making a freezing-friendly recipe, describe how the whole dish should be portioned and reheated.
 
 Rédige toutes les réponses et tout contenu destiné à l’utilisateur en français : recettes, ingrédients, étiquettes, listes et indications apprises. Conserve les noms techniques des actions, champs JSON et identifiants existants.
 
