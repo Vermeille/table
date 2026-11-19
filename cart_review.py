@@ -5,6 +5,20 @@ def required(w):return {i['id']:i for i in (w.get('groceries') or {}).get('items
 def missing(w):
     cart=w.get('cart') or {};covered={m['grocery_id'] for m in cart.get('matches',[])};excluded={x['grocery_id'] for x in cart.get('excluded',[])}
     return sorted(set(required(w))-covered-excluded)
+
+def approve(c, week, version):
+    w = D.get(c, 'week', week)
+    if not w or not (w.get('groceries') or {}).get('approved') or not (w.get('cart') or {}).get('matches'):
+        raise ValueError('Review proposed products first.')
+    if missing(w):
+        raise ValueError('Choisissez un produit ou une décision explicite pour chaque ingrédient restant avant de valider.')
+    if any(not m.get('productId') for m in w['cart']['matches']):
+        raise ValueError('Every proposed product needs an ID.')
+    if w['cart']['status'] != 'proposed':
+        raise ValueError('This cart is not awaiting approval.')
+    w['cart']['status'] = 'approved'
+    return D.put(c, 'week', week, w, version)
+
 def review(week,version,grocery_id,action,product=None,quantity=None):
     with D.db() as c:
         w=D.get(c,'week',week)

@@ -120,7 +120,7 @@ def state(week:str=''):
         runs=[dict(r) for r in c.execute('SELECT * FROM runs ORDER BY created DESC LIMIT 60')]
         current=D.get(c,'week',D.week_id(week)) or D.blank_week(week)
         fill=D.get(c,'fill',(current.get('cart') or {}).get('fill_job_id',''))
-    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'setup_error':getattr(app.state,'provision_error',None)}
+    return {'recipes':D.recipes(),'week':current,'weeks':[{'id':w['id'],'approved':w['approved'],'count':len(w['slots'])} for w in D.listing('week')],'preferences':D.read('preferences','main'),'learning':D.listing('learning'),'runs':runs,'fill_job':fill,'chronodrive_connected':bool(encrypted_read('chronodrive')),'setup_error':getattr(app.state,'provision_error',None)}
 @app.post('/api/recipes')
 async def recipe_save(req:Request):return D.save_recipe(await req.json())
 @app.get('/api/recipes/{id}/markdown')
@@ -145,14 +145,11 @@ async def workflow(week,action,req:Request):
     if action=='approve-groceries':return D.approve_groceries(week,v)
     if action=='approve-cart':
         with D.db() as c:
-            w=D.get(c,'week',week)
-            if not w or not (w.get('groceries') or {}).get('approved') or not (w.get('cart') or {}).get('matches'):raise ValueError('Review proposed products first.')
-            if cart_review.missing(w):raise ValueError('Choisissez un produit ou une décision explicite pour chaque ingrédient restant avant de valider.')
-            if any(not m.get('productId') for m in w['cart']['matches']):raise ValueError('Every proposed product needs an ID.')
-            if w['cart'].get('status')!='proposed':raise ValueError('This cart is not awaiting approval.')
-            w['cart']['status']='approved';return D.put(c,'week',week,w,v)
-    if action in ('fill-cart','resume-fill'):
-        return cart_fill.start(week,v,cart_identity(),resume=action=='resume-fill')
+            return cart_review.approve(c, week, v)
+    if action in ('approve-and-fill','fill-cart','resume-fill'):
+        if action=='approve-and-fill' and not encrypted_read('chronodrive'):
+            raise ValueError('Connectez votre compte Chronodrive avant de remplir le panier.')
+        return cart_fill.start(week,v,cart_identity(),resume=action=='resume-fill',approve=action=='approve-and-fill')
     if action=='pause-fill':return cart_fill.pause(week,v)
     if action=='reopen-cart':
         with D.db() as c:

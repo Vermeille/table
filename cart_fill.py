@@ -20,13 +20,17 @@ def legacy_approval(c,w):
         if status=='approved':return r['version']
         if status not in ('review','filling'):break
     return None
-def start(week,version,identity,resume=False):
+def start(week,version,identity,resume=False,approve=False):
     with D.db() as c:
         w=D.get(c,'week',week)
         if not w or w['version']!=version:raise ValueError('La sélection a changé. Rechargez avant de remplir le panier.')
         cart=w.get('cart') or {}
         if not w.get('approved') or not (w.get('groceries') or {}).get('approved') or not cart.get('matches') or cart_review.missing(w):raise ValueError('Validez d’abord la sélection complète des produits.')
         if any((D.get(c,'fill',r[0]) or {}).get('status') in ACTIVE for r in c.execute("SELECT id FROM docs WHERE kind='fill'").fetchall()):raise ValueError('Un remplissage est déjà en cours. Consultez sa progression.')
+        if approve:
+            w = cart_review.approve(c, week, version)
+            cart = w['cart']
+            version = w['version']
         existing=D.get(c,'fill',cart.get('fill_job_id',''))
         if resume and existing:
             if cart.get('status')!='review' or existing['status'] not in ('paused','partial'):raise ValueError('Ce remplissage ne peut pas être repris.')

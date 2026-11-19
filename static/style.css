@@ -7,3 +7,134 @@
 .product{display:flex;gap:16px;align-items:flex-start}.product-image{width:84px;height:84px;flex:0 0 84px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;color:var(--muted);font-size:30px}.product-image img{width:100%;height:100%;object-fit:contain;padding:5px}.product-info{min-width:0;flex:1}.product-info p{margin:6px 0}.unmatched-item{padding:14px 0;border-top:1px solid #d9bfb0}.unmatched-item .row{margin-top:9px}.cart-exclusions{padding:15px;background:var(--sage);border-radius:10px;margin:16px 0}.cart-exclusions .row{margin-top:10px}#product-search-form input{min-width:0;flex:1}@media(max-width:600px){.product{gap:10px}.product-image{width:64px;height:64px;flex-basis:64px}.unmatched-item button{font-size:11px}}
 
 .fill-progress{padding:18px;background:var(--sage);border-radius:12px;margin:18px 0}.fill-progress progress{width:100%;height:12px;accent-color:var(--ink);margin:14px 0}.fill-progress p{margin-bottom:10px;font-size:12px}.fill-error{background:#fff7ec;padding:12px;border-radius:8px;margin:10px 0}.fill-error p{margin:6px 0}.fill-error small{color:var(--muted)}
+
+/* The shopping stages share one workspace and keep the current action in reach. */
+.workflow-workspace { grid-template-columns: minmax(0, 1fr); }
+.workflow-workspace .main { width: 100%; max-width: 1180px; margin: 0 auto; padding-bottom: 100px; }
+.workflow-workspace .chat { display: none; }
+.workflow-workspace .chat.open {
+    display: flex;
+    position: fixed;
+    inset: auto 22px 72px auto;
+    width: min(390px, calc(100% - 40px));
+    height: min(720px, calc(100dvh - 110px));
+    z-index: 10;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    box-shadow: 0 12px 48px #233d3230;
+    overflow: hidden;
+}
+.mobile-chat.workflow-chat-toggle {
+    display: none;
+    position: fixed;
+    right: 22px;
+    bottom: 20px;
+    z-index: 11;
+    border-radius: 99px;
+    background: var(--ink);
+    color: #fff;
+}
+.mobile-chat.workflow-chat-toggle.chat-visible { display: block; }
+.workflow-chat-toggle:hover { background: #385548; }
+.shopping-heading { margin-bottom: 20px; }
+.shopping-heading > .row { margin-bottom: 5px; }
+.flow-date { color: var(--muted); margin-bottom: 0; font-weight: 600; }
+.plan-heading { margin-bottom: 15px; }
+.flow-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 20px 0 12px;
+}
+.flow-nav button {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+}
+.flow-nav button[aria-current="step"] { background: var(--sage); border-color: #a7b49f; }
+.flow-nav button[aria-current="step"]:disabled { opacity: 1; }
+.flow-index {
+    display: grid;
+    place-items: center;
+    flex: 0 0 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: var(--paper);
+    font-size: 12px;
+}
+[aria-current="step"] .flow-index { background: var(--ink); color: #fff; }
+.flow-actions {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: #fffef9;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 3px 12px #263b3209;
+}
+.flow-actions small, .flow-status small { display: block; color: #616d65; margin-top: 4px; }
+.flow-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.flow-status { display: flex; align-items: center; gap: 12px; padding: 16px; margin: 12px 0; border-radius: 10px; background: var(--sage); }
+.flow-status button { margin-left: auto; }
+.flow-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    vertical-align: -3px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: flow-spin .9s linear infinite;
+}
+@keyframes flow-spin { to { transform: rotate(360deg); } }
+.grocery-panel, .missing-products { margin: 14px 0 20px; }
+.grocery-panel > .grocery { color: var(--muted); font-weight: 600; }
+.grocery-tools { margin-top: 16px; }
+.grocery-summary { padding: 0 16px; list-style: none; background: #fffef9; border: 1px solid var(--line); border-radius: 12px; }
+.grocery-summary li { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.grocery-summary li:last-child { border: 0; }
+.grocery-summary small { color: var(--muted); }
+.grocery-note { padding: 6px 0 6px 32px; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 10px; }
+.product-grid .product { background: #fffef9; border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-wrap: anywhere; }
+.product-grid .product strong { margin: 4px 0; }
+.product-source { display: block; }
+.product-format, .product-quantity { font-size: 12px; }
+.product-quantity { margin-top: 4px; font-weight: 600; }
+.product-change { padding: 6px 0; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.product-tools { margin-top: 16px; }
+.missing-products { border-color: #d9bfb0; }
+.missing-products h2 { font-size: 24px; margin-bottom: 12px; }
+.unmatched-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.unmatched-item small { display: block; color: var(--muted); }
+.unmatched-item .row { margin-top: 0; }
+.cart-exclusions summary { cursor: pointer; font-weight: 600; }
+.drive-link { display: inline-block; border-radius: 9px; padding: 10px 14px; background: var(--ink); color: #fff; text-decoration: none; }
+.fill-progress progress { margin-top: 0; }
+.fill-progress p:last-child, .fill-error p:last-child { margin-bottom: 0; }
+#flow-title:focus { outline: none; }
+@media (max-width: 600px) {
+    .shopping-heading h1 { font-size: 34px; }
+    .flow-nav button { justify-content: center; padding: 8px 4px; gap: 4px; font-size: 11px; }
+    .flow-index { flex-basis: 19px; height: 19px; font-size: 10px; }
+    .flow-actions { padding: 10px 12px; gap: 8px; }
+    .flow-controls, .flow-controls .primary { width: 100%; }
+    .flow-controls .primary { min-height: 42px; }
+    .flow-status { flex-wrap: wrap; }
+    .grocery-panel { padding: 10px; }
+    .grocery-panel .grocery { grid-template-columns: 23px minmax(58px, 1fr) 53px 45px 26px; gap: 5px; }
+    .grocery-panel .grocery input { padding: 6px 4px; }
+    .grocery-panel .grocery button { padding-inline: 0; }
+}
