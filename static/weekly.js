@@ -109,7 +109,7 @@ function bindWeekly() {
     const form = $('#weekly-form');
     if ($('#notification-device')) {
         paintNotificationDevice();
-        if (!pushRegistration) readNotificationDevice().then(paintNotificationDevice, () => {
+        if (!pushRegistration || !pushKey) readNotificationDevice().then(paintNotificationDevice, () => {
             const area = $('#notification-device');
             if (area) area.textContent = 'Les notifications sur cet appareil sont indisponibles.';
         });
@@ -153,6 +153,7 @@ async function weeklyAction(name) {
 }
 
 let pushRegistration;
+let pushKey;
 let pushedDevice;
 let pushLoading = false;
 const canUsePush = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -179,24 +180,19 @@ function paintNotificationDevice() {
     area.innerHTML = pushedDevice ? `<div class="row">
         <button type="button" data-notification="test">Envoyer un essai</button>
         <button type="button" data-notification="off">Désactiver sur cet appareil</button>
-    </div>` : '<button type="button" data-notification="on">Activer sur cet appareil</button>';
+    </div>` : `<button type="button" data-notification="on" ${pushRegistration && pushKey ? '' : 'disabled'}>Activer sur cet appareil</button>`;
     area.querySelectorAll('[data-notification]').forEach(button => button.onclick = () => safe(async () => {
         button.disabled = true;
         try {
             if (button.dataset.notification === 'on') {
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') return;
-                if (!pushRegistration) await readNotificationDevice();
-                const {public_key:key} = await api('notifications/key');
-                const bytes = Uint8Array.from(atob(key.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat((4-key.length%4)%4)), c => c.charCodeAt(0));
-                const existing = await pushRegistration.pushManager.getSubscription();
-                const subscription = existing || await pushRegistration.pushManager.subscribe({
-                    userVisibleOnly:true, applicationServerKey:bytes
+                // The browser needs this call during the user gesture that grants permission.
+                const subscription = await pushRegistration.pushManager.subscribe({
+                    userVisibleOnly:true, applicationServerKey:pushKey
                 });
                 try {
                     await api('notifications/subscribe', subscription.toJSON());
                 } catch (error) {
-                    if (!existing) await subscription.unsubscribe();
+                    await subscription.unsubscribe();
                     throw error;
                 }
                 pushedDevice = subscription;
@@ -220,7 +216,11 @@ async function readNotificationDevice() {
     if (!canUsePush()) return;
     if (pushLoading) return pushLoading;
     pushLoading = (async () => {
-        await navigator.serviceWorker.register('/service-worker.js');
+        const [, {public_key:key}] = await Promise.all([
+            navigator.serviceWorker.register('/service-worker.js'), api('notifications/key')
+        ]);
+        const encoded=key.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat((4-key.length%4)%4);
+        pushKey=Uint8Array.from(atob(encoded),c => c.charCodeAt(0));
         pushRegistration = await navigator.serviceWorker.ready;
         pushedDevice = await pushRegistration.pushManager.getSubscription();
     })();

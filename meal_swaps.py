@@ -2,6 +2,7 @@
 import batch
 import domain as D
 import weekly
+from recipe_nutrition import project
 
 
 def related_keys(week, key, entries):
@@ -36,8 +37,9 @@ def suggestions(week, key, whole_batch=False):
         required_portable=any(slot['meal']=='lunch' and slot['day'] in settings['portable']
                               for slot in slots if batch.key(slot) in targets)
         options=[]
+        before=(project(old['recipe']).get('nutrition') or {}).get('kcal')
         for (id,) in c.execute("SELECT id FROM docs WHERE kind='recipe'"):
-            recipe=D.get(c,'recipe',id)
+            recipe=project(D.get(c,'recipe',id))
             if id==old['recipe_id'] or not weekly.allowed(recipe,settings):
                 continue
             features=weekly.recipe_features(recipe)
@@ -55,7 +57,6 @@ def suggestions(week, key, whole_batch=False):
             already_planned=sum(slot['recipe_id']==id for slot in slots)
             nutrition=recipe.get('nutrition') or {}
             calories=nutrition.get('kcal')
-            before=(old['recipe'].get('nutrition') or {}).get('kcal')
             calorie_distance=abs(calories-before) if calories is not None and before is not None else 300
             rank=(len(added & set(settings['no_cook'])),len(added),already_planned,len(new_days),
                   calorie_distance,features['active_minutes'] or 25,recipe['title'])

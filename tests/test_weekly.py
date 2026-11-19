@@ -234,3 +234,12 @@ class WeeklyPreparation(unittest.TestCase):
         prior = D.save_recipe({**recipes[0],'title':'Mon plat personnalisé'})
         weekly.install_pack()
         self.assertEqual(D.read('recipe',prior['id']),prior)
+
+    def test_calorie_review_recalculates_legacy_snapshots_instead_of_using_estimates(self):
+        old={'id':'legacy-fixture','title':'Lentilles','servings':2,'ingredients':[
+                {'name':'lentilles corail sèches','quantity':100,'unit':'g'}],
+             'nutrition':{'kcal':999}}
+        result=weekly.assess({'slots':[{'day':0,'meal':'lunch','servings':2,'recipe_id':old['id'],'recipe':old}]},weekly.DEFAULTS)
+        self.assertEqual(result['nutrition_known'],1)
+        self.assertEqual(result['daily_kcal'],{0:164})
+        self.assertEqual(old['nutrition'],{'kcal':999})

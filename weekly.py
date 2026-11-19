@@ -15,6 +15,7 @@ import cart_review
 import domain as D
 from chronodrive_products import product_id
 from retailer_quantities import matches_form, quantity_for
+from recipe_nutrition import identity as normalized, project
 
 LOG = logging.getLogger('table.weekly')
 ACTIVE = {'queued', 'planning', 'shopping', 'matching'}
@@ -41,11 +42,6 @@ PORTABLE = {
     'quesadillas-champignons-mais': True, 'chili-con-carne-haricots-rouges': True,
     'tourte-viande-worcestershire': True,
 }
-
-
-def normalized(value):
-    from recipe_nutrition import identity
-    return identity(value)
 
 
 def install_pack():
@@ -205,7 +201,7 @@ def assess(plan, config, *, strict=True):
     diet_issues=set()
     frozen = legumes = vegetables = whole_grain = known = fish = 0
     for slot in batch.ordered(plan['slots']):
-        recipe = slot['recipe']
+        recipe = project(slot['recipe'])
         features = recipe_features(recipe)
         if not allowed(recipe, config):
             if strict:
@@ -270,8 +266,8 @@ def context(c, job):
     week, config = job['id'], job['settings']
     catalog = [D.get(c, 'recipe', row[0]) for row in c.execute("SELECT id FROM docs WHERE kind='recipe' ORDER BY id")]
     freezer = batch.planning_context(c, week, job['batch_settings'])
-    recipes = {recipe['id']:recipe for recipe in catalog}
-    recipes.update({lot['recipe']['id']:lot['recipe'] for lot in freezer['lots'] if lot['recipe']['id'] not in recipes})
+    recipes = {recipe['id']:project(recipe) for recipe in catalog}
+    recipes.update({lot['recipe']['id']:project(lot['recipe']) for lot in freezer['lots'] if lot['recipe']['id'] not in recipes})
     previous = D.get(c, 'week', (datetime.fromisoformat(week).date()-timedelta(days=7)).isoformat())
     prior_cart=(previous or {}).get('cart') or {}
     previous_gaps=[]

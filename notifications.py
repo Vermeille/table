@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat
 import domain as D
 
 LOG = logging.getLogger('table.notifications')
-PUSH_HOSTS = {'fcm.googleapis.com', 'android.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com'}
+PUSH_HOSTS = {'fcm.googleapis.com', 'android.googleapis.com', 'updates.push.services.mozilla.com'}
 NOTICE_TTL = 7 * 24 * 60 * 60
 MAX_ATTEMPTS = 5
 RETRYABLE = {0, 408, 429}
@@ -38,7 +38,9 @@ def endpoint_id(endpoint):
     if not isinstance(endpoint, str) or not 1 <= len(endpoint) <= 4096 or any(char.isspace() for char in endpoint):
         raise ValueError('L’adresse de notification est invalide.')
     url = urlsplit(endpoint)
-    if (url.scheme != 'https' or url.hostname not in PUSH_HOSTS
+    host = url.hostname or ''
+    trusted = host in PUSH_HOSTS or bool(re.fullmatch(r'(?:[a-z0-9-]+\.)+push\.apple\.com',host))
+    if (url.scheme != 'https' or not trusted
             or url.netloc != url.hostname or not url.path.startswith('/') or url.fragment):
         raise ValueError('Le service de notifications de ce navigateur n’est pas pris en charge.')
     return hashlib.sha256(endpoint.encode()).hexdigest()
@@ -136,7 +138,7 @@ def transmit(device, week=None):
             response = webpush(info, json.dumps(message,ensure_ascii=False),
                                vapid_private_key=private, vapid_claims={'sub':device['origin']},
                                ttl=NOTICE_TTL if week else 60, timeout=10, requests_session=session,
-                               headers={'topic':f'table-{week or "test"}','urgency':'normal'})
+                               headers={'topic':f'table-{week or "test"}','urgency':'high'})
             return response.status_code
     except WebPushException as error:
         return error.response.status_code if error.response is not None else 0

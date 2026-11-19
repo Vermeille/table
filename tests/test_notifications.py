@@ -34,11 +34,14 @@ class WeeklyNotifications(unittest.TestCase):
         self.assertEqual(initial,push.public_key())
         self.assertEqual(len(push.key_bytes(initial,65)),65)
         for bad in ('http://fcm.googleapis.com/a', 'https://fcm.googleapis.com.evil.test/a',
-                    'https://fcm.googleapis.com@evil.test/a','https://fcm.googleapis.com:8080/a'):
+                    'https://fcm.googleapis.com@evil.test/a','https://fcm.googleapis.com:8080/a',
+                    'https://web.push.apple.com.evil.test/a'):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 push.register({**self.subscription,'endpoint':bad},'https://table.test')
         self.assertEqual(D.listing('push_device'),[])
         self.assertNotIn(initial,D.read('push_key','main')['secret'])
+        self.assertEqual(len(push.endpoint_id('https://web.push.apple.com/a')),64)
+        self.assertEqual(len(push.endpoint_id('https://example.web.push.apple.com/a')),64)
 
     def test_ready_delivery_encrypts_payload_and_is_sent_once_per_device(self):
         key = push.register(self.subscription,'https://table.test')

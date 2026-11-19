@@ -12,7 +12,8 @@ try:
         from concurrent.futures import ThreadPoolExecutor
         def search(query):
             try:
-                found=[normalize(x) for x in c.search_products(query,session)[:15]]
+                search_text='maïs doux nature' if query.casefold() in ('maïs','mais') else query
+                found=[normalize(x) for x in c.search_products(search_text,session)[:15]]
                 return query,[x for x in found if x['stock']!='NO_STOCK'][:6]
             except Exception:
                 return query,[]
