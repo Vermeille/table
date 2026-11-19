@@ -50,6 +50,12 @@ const assert = require('node:assert/strict');
         assert.equal((await page.request.get(base+'/api/fixture-receipt').then(r=>r.json())).writes.length,0);
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
         await page.screenshot({path:(process.env.QA_RESULTS || '/tmp')+'/weekly-ready-mobile.png',fullPage:true});
+        await page.setViewportSize({width:320,height:700});
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+        await page.getByRole('button',{name:'Menu',exact:true}).click();
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+        await page.getByRole('button',{name:'Menu',exact:true}).click();
+        await page.setViewportSize({width:390,height:844});
 
         // Keep the other match when marking one ingredient as already in the pantry.
         await click('Valider les repas et voir les courses →');

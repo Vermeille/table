@@ -344,6 +344,11 @@
     .planning-workspace .weekly-summary h2 { font-size: 27px; }
     .planning-workspace .weekly-summary { padding: 14px; }
 }
+@media (max-width: 360px) {
+    .shell .nav > button span { display: none; }
+    .shell .nav > button { padding-inline: 4px; }
+    .mobile-menu-button { padding-inline: 8px; }
+}
 
 .meal-picker-result { display: block; width: 100%; text-align: left; margin: 6px 0; }
 #swap-suggestions:empty { display: none; }
