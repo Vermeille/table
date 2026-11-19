@@ -43,6 +43,7 @@ function weeklyOverview() {
             ${stats.length ? `<dl class="weekly-stats">${stats.map(([value, title]) =>
                 `<div><dt>${title}</dt><dd>${value}</dd></div>`).join('')}</dl>` : ''}
             ${q?.active_minutes ? `<p>Environ ${q.active_minutes} min de préparation active sur la semaine.</p>` : ''}
+            ${Number.isInteger(q?.nutrition_known) ? `<p>Calories calculées pour ${q.nutrition_known} repas sur ${S.week.slots.length}.</p>` : ''}
             ${job.error ? `<p class="notice">${esc(job.error)}</p>` : ''}
             ${!S.week.approved && unmatched > 0 && S.chronodrive_connected ? '<button class="small weekly-retry" data-action="weekly-retry-products">Relancer les produits à trouver</button>' : ''}
             ${warnings.length ? `<details class="weekly-warnings"><summary>${warnings.length === 1 ? '1 point à vérifier' : warnings.length + ' points à vérifier'}</summary>

@@ -13,6 +13,7 @@ DRAINED = {
     '3596710451722': (375, 'https://www.auchan.fr/auchan-haricots-rouges/pr-C1162142'),
     '3083681085990': (250, 'https://www.auchan.fr/bonduelle-haricots-rouges-cuits-dans-tres-peu-de-jus/pr-C1163469'),
     '3017800078860': (265, 'https://www.auchan.fr/sultanines-pois-chiches-secs-et-trempes/pr-C1230489'),
+    '3083680025881': (285, 'https://www.auchan.fr/bonduelle-mais-sans-sucres-ajoutes/pr-C1240944'),
 }
 UNITS = {'g':('g',1),'kg':('g',1000),'ml':('ml',1),'cl':('ml',10),'l':('ml',1000),
          'piece':('pièce',1),'pieces':('pièce',1),'oeuf':('pièce',1),'oeufs':('pièce',1)}
@@ -84,6 +85,8 @@ def matches_form(grocery, product):
     if 'kit' in label.split() and 'kit' not in ingredient.split():
         return False
     if ingredient.startswith('pate a pizza') and not re.search(r'\bpate (?:a )?pizza\b',label):
+        return False
+    if ingredient=='mais' and not (label.startswith('mais doux') or label.startswith('mais en grains')):
         return False
     return True
 
