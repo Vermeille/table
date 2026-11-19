@@ -29,7 +29,7 @@ try:
             try:
                 if not d.get('refresh') and cache.exists() and time.time()-cache.stat().st_mtime<3600:
                     cached=json.loads(cache.read_text())
-                    if 'pack' in cached:return cached
+                    if 'pack_options' in cached:return cached
                 item=normalize(c.product_details(id,session));item['productId']=id;cache.write_text(json.dumps(item,ensure_ascii=False));cache.chmod(0o600);return item
             except Exception:return {'productId':id,'image_url':None,'unavailable':True}
         with ThreadPoolExecutor(max_workers=6) as pool:result=list(pool.map(detail,ids))

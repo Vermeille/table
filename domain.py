@@ -149,7 +149,13 @@ def update_week(id,data,*,agent=False):
         if agent and active_automation(c, 'planner'):
             raise ValueError('Utilisez la proposition hebdomadaire pendant la préparation automatique.')
         if w['version']!=data['version']:raise ValueError('The week changed. Reload before saving.')
-        batch_config=w.get('batch_settings') if w.get('weekly_prepared') and 'batch' not in get(c,'preferences','main') else None
+        batch_config=None
+        if w.get('weekly_prepared'):
+            import batch
+            prefs=get(c,'preferences','main')
+            previous=w.get('batch_settings',batch.settings(prefs))
+            batch_config={**(batch.settings(prefs) if prefs.get('batch') else previous),
+                          'prefer_frozen_days':previous.get('prefer_frozen_days',[])}
         draft, diary, completed = compose_week(c, id, data, w, batch_config)
         if len(completed) != len(diary['entries']):
             diary['entries'] = {key: diary['entries'][key] for key in completed}

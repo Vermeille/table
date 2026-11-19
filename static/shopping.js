@@ -175,7 +175,7 @@ function productStage() {
 
 function productCard(match, ingredient, editable) {
     const price = Number.isFinite(match.price) ? euro.format(match.price) : '';
-    const trustedSource = /^https:\/\/www\.(auchan|bonduelle)\.fr\//.test(match.pack_source || '') ? match.pack_source : null;
+    const trustedSource = /^https:\/\/(?:www\.(?:auchan|bonduelle)\.fr|www\.fao\.org|fdc\.nal\.usda\.gov)\//.test(match.pack_source || '') ? match.pack_source : null;
     return `<article class="product">
         ${productPhoto(match.productId)}
         <div class="product-info">

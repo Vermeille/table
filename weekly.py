@@ -14,7 +14,7 @@ import batch
 import cart_review
 import domain as D
 from chronodrive_products import product_id
-from retailer_quantities import quantity_for
+from retailer_quantities import matches_form, quantity_for
 
 LOG = logging.getLogger('table.weekly')
 ACTIVE = {'queued', 'planning', 'shopping', 'matching'}
@@ -24,6 +24,7 @@ DEFAULTS = {'enabled': False, 'day': 4, 'at': '18:00', 'timezone': 'Europe/Paris
             'portable': [0, 1, 3, 4], 'no_cook': [], 'cook_days': 4,
             'diet': 'any', 'exclude': [], 'daily_kcal': None, 'pantry': []}
 LIMIT_SECONDS = 8 * 60
+WAIT_SECONDS = 10 * 60
 LEGUMES = re.compile(r'lentill|pois chich|pois cass|haricot(?:s)? (?:noir|blanc|rouge)')
 VEGETABLE = re.compile(r'tomat|chou|poivron|epinard|brocoli|courgette|carotte|poireau|oignon|aubergine|champignon|laitue|concombre|haricot(?:s)? vert')
 WHOLE_GRAIN = re.compile(r'complet|boulgour|quinoa|orge perl|avoine')
@@ -140,7 +141,9 @@ def due_week(now, config):
 def overview(c, week, now):
     config = settings(c)
     upcoming, planned = next_schedule(now, config)
-    if now >= planned:
+    upcoming_job=D.get(c,'weekly',upcoming)
+    upcoming_plan=D.get(c,'week',upcoming)
+    if now >= planned or upcoming_job or (upcoming_plan or {}).get('approved'):
         _, planned = next_schedule(now + timedelta(days=7), config)
     recent = c.execute("""SELECT id FROM docs WHERE kind='weekly' AND id>=?
         AND id<=?
@@ -191,7 +194,7 @@ def allowed(recipe, config):
     return config['diet'] == 'any' or recipe_features(recipe)[config['diet']]
 
 
-def assess(plan, config):
+def assess(plan, config, *, strict=True):
     cook = set()
     energy = {}
     portable_misses = []
@@ -199,18 +202,22 @@ def assess(plan, config):
     proteins = Counter()
     cooking_minutes = Counter()
     unknown_cooking_time = 0
-    frozen = legumes = vegetables = whole_grain = known = 0
+    diet_issues=set()
+    frozen = legumes = vegetables = whole_grain = known = fish = 0
     for slot in batch.ordered(plan['slots']):
         recipe = slot['recipe']
         features = recipe_features(recipe)
         if not allowed(recipe, config):
-            raise ValueError(f'Plat incompatible avec les exclusions ou le régime : {recipe["title"]}.')
+            if strict:
+                raise ValueError(f'Plat incompatible avec les exclusions ou le régime : {recipe["title"]}.')
+            diet_issues.add(recipe['title'])
         repeated[features['family']] += 1
         if features['protein'] != 'inconnue':
             proteins[features['protein']] += 1
         legumes += features['legumes']
         vegetables += features['vegetables'] >= 2
         whole_grain += features['whole_grain']
+        fish += features['fish']
         if slot['meal'] == 'lunch' and slot['day'] in config['portable'] and not features['portable']:
             portable_misses.append(slot['day'])
         task = plan.get('batch', {}).get(batch.key(slot), {})
@@ -228,7 +235,7 @@ def assess(plan, config):
         if calories is not None:
             known += 1
         energy.setdefault(slot['day'], []).append(calories)
-    warnings = []
+    warnings = [f'À vérifier avec vos préférences alimentaires : {title}.' for title in sorted(diet_issues)]
     missing = len(plan['slots']) - known
     over = max(0, len(cook) - config['cook_days'])
     if over: warnings.append(f'{len(cook)} jours de cuisine prévus pour un objectif de {config["cook_days"]}.')
@@ -249,10 +256,14 @@ def assess(plan, config):
              + sum(max(0,minutes-55) for minutes in cooking_minutes.values())*.12
              - min(len(proteins), 4)*3 - min(legumes, 4)*1.5 - vegetables - whole_grain*.8)
     return {'score':round(score,2),'cook_days':sorted(cook),'frozen_meals':frozen,'legume_meals':legumes,
-            'vegetable_meals':vegetables,'whole_grain_meals':whole_grain,'protein_sources':list(proteins),
+            'vegetable_meals':vegetables,'whole_grain_meals':whole_grain,'fish_meals':fish,'protein_sources':list(proteins),
             'active_minutes':sum(cooking_minutes.values()) if not unknown_cooking_time else None,
             'nutrition_known':known,'daily_kcal':totals,'portable_misses':portable_misses,
             'no_cook_misses':banned,'warnings':warnings}
+
+
+def quality_rank(quality):
+    return (len(quality['no_cook_misses']),len(quality['portable_misses']),quality['score'])
 
 
 def context(c, job):
@@ -262,14 +273,22 @@ def context(c, job):
     recipes = {recipe['id']:recipe for recipe in catalog}
     recipes.update({lot['recipe']['id']:lot['recipe'] for lot in freezer['lots'] if lot['recipe']['id'] not in recipes})
     previous = D.get(c, 'week', (datetime.fromisoformat(week).date()-timedelta(days=7)).isoformat())
+    prior_cart=(previous or {}).get('cart') or {}
+    previous_gaps=[]
+    if prior_cart.get('weekly_preview'):
+        unmet=set(prior_cart.get('unmatched',[]))
+        previous_gaps=[item['name'] for item in ((previous or {}).get('groceries') or {}).get('items',[]) if item['id'] in unmet]
     return {'week':week,'household':config,'preferences':D.get(c,'preferences','main'),
             'learning':D.get(c,'learning','planner')['text'],
             'slots':[{'day':day,'meal':meal,'servings':config['people']} for day,meal in slot_keys(config)],
             'freezer':{'settings':job['batch_settings'],'available_portions':freezer['available_portions'],
                        'automatic_portions':freezer['automatic_portions'],
                        'lots':[{'recipe_id':lot['recipe']['id'],'title':lot['recipe']['title'],
-                                'available':lot['available'],'frozen_on':lot['frozen_on']} for lot in freezer['lots']]},
+                                'recipe_version':lot['recipe'].get('version',0),'portable':recipe_features(lot['recipe'])['portable'],
+                                'available':lot['available'],'frozen_on':lot['frozen_on']}
+                               for lot in freezer['lots'] if allowed(lot['recipe'],config)]},
             'last_week':list(dict.fromkeys(slot['recipe_id'] for slot in (previous or {}).get('slots', []))),
+            'previous_grocery_gaps':previous_gaps,
             'recipes':[{'id':r['id'],'title':r['title'],'freezer_ok':r.get('freezer_ok',False),
                         'freezer_only':r.get('freezer_only',False),'ingredients':[i['name'] for i in r['ingredients']],
                         'nutrition':r.get('nutrition',{}),**recipe_features(r)}
@@ -303,6 +322,30 @@ def request(c, week, version=None, auto=False):
 def owner_request(week, version):
     with D.db() as c:
         return public(request(c,week,version))
+
+
+def retry_products(week, version):
+    with D.db() as c:
+        w=D.get(c,'week',D.week_id(week))
+        job=D.get(c,'weekly',week)
+        if not w or w['version']!=version or w['approved'] or not job or job['status']!='ready':
+            raise ValueError('Actualisez le brouillon avant de relancer la recherche.')
+        if w.get('weekly_prepared')!=job['request_id']:
+            raise ValueError('Actualisez le brouillon avant de relancer la recherche.')
+        cart=w.get('cart') or {}
+        if cart.get('weekly_preview'):
+            groceries=cart_review.required(w)
+            valid=[m for m in cart['matches'] if m['grocery_id'] in groceries and matches_form(groceries[m['grocery_id']],m)]
+            if len(valid)!=len(cart['matches']):
+                cart['matches']=valid
+                cart['unmatched']=cart_review.missing(w)
+                w=D.put(c,'week',week,w,version)
+        if not cart_review.missing(w):
+            raise ValueError('Tous les produits de ce brouillon ont déjà une sélection.')
+        job.update(status='shopping',draft_version=w['version'],shopping_at=time.time(),error='',
+                   quality=assess(w,job['settings'],strict=False))
+        job.pop('cart_run',None)
+        return public(D.put(c,'weekly',week,job,job['version']))
 
 
 def public(job):
@@ -349,48 +392,98 @@ def propose(week, request_id, plans):
                 results.append({'error':str(error)})
                 continue
             results.append(quality)
-            if not job.get('proposal') or quality['score'] < job['proposal']['quality']['score']:
+            if not job.get('proposal') or quality_rank(quality) < quality_rank(job['proposal']['quality']):
                 job['proposal']={'week':draft,'quality':quality,'note':str(option.get('note',''))[:1000]}
         D.put(c,'weekly',week,job,job['version'])
         return {'accepted':bool(job.get('proposal')),'reviews':results,
                 'best':job['proposal']['quality'] if job.get('proposal') else None}
 
 
-def fallback(c, job, w):
+def stock_choices(facts, slots, config):
+    portions = config['people']
+    left = facts['freezer']['automatic_portions']
+    groups = {}
+    for lot in sorted(facts['freezer']['lots'],key=lambda lot:(lot['frozen_on'],lot['recipe_id'])):
+        key=(lot['recipe_id'],lot['recipe_version'])
+        group=groups.setdefault(key,{**lot,'available':0})
+        group['available']+=lot['available']
+    assigned = {}
+    no_cook=set(config['no_cook'])
+    priorities = sorted(slots,key=lambda slot:(slot[0] not in no_cook,slot[0],batch.MEAL_ORDER[slot[1]]))
+    for day,meal in priorities:
+        if left < portions:
+            break
+        portable = meal=='lunch' and day in config['portable']
+        group=next((g for g in groups.values() if g['available']>=portions and (not portable or g['portable'])),None)
+        if group:
+            assigned[(day,meal)]=group['recipe_id']
+            group['available']-=portions
+            left-=portions
+    return assigned
+
+
+def fallback(c, job, w, facts=None):
     """Try different cooking days and recipe rotations. A failed AI run must still respect hard exclusions."""
     config = job['settings']
-    facts = context(c,job)
+    facts = facts if facts is not None else context(c,job)
     pool = [r for r in facts['recipes'] if not r['freezer_only']]
-    if not pool:
-        raise ValueError('Aucune recette du carnet ne respecte les exclusions de votre foyer.')
-    pool.sort(key=lambda r:(r['id'] in facts['last_week'], not r['nutrition'].get('kcal'),
-                            not r['freezer_ok'], not r['legumes'], -r['vegetables'], r['id']))
     slots = slot_keys(config)
+    stock = stock_choices(facts,slots,config)
+    previous_gaps={normalized(item) for item in facts['previous_grocery_gaps']}
+    gaps_by_recipe={r['id']:len(previous_gaps & {normalized(i) for i in r['ingredients']}) for r in pool}
+    if not pool and len(stock)<len(slots):
+        raise ValueError('Le carnet et le stock ne suffisent pas pour les exclusions de votre foyer.')
+    pool.sort(key=lambda r:(gaps_by_recipe[r['id']],r['id'] in facts['last_week'], not r['nutrition'].get('kcal'),
+                            not r['freezer_ok'], not r['legumes'], -r['vegetables'], r['id']))
     starting_days = [day for day in config['days'] if day not in config['no_cook']] or config['days']
     candidate_days = list(itertools.combinations(starting_days,min(len(starting_days),config['cook_days'])))[:12]
     best = None
-    for offset in range(min(len(pool),8)):
+    for offset in range(max(1,min(len(pool),8))):
         for days in candidate_days:
             chosen=[]
             used=Counter()
             for day,meal in slots:
                 portable = meal=='lunch' and day in config['portable']
                 eligible = [r for r in pool if not portable or r['portable']] or pool
+                slot = {'day':day,'meal':meal,'servings':config['people']}
+                if (day,meal) in stock:
+                    chosen.append({**slot,'recipe_id':stock[(day,meal)]})
+                    used[stock[(day,meal)]]+=1
+                    continue
                 if day not in days:
                     reusable=[p for p in chosen if p['day'] < day and p['recipe_id'] in {r['id'] for r in eligible if r['freezer_ok']}
-                              and used[p['recipe_id']] < 3]
+                              and used[p['recipe_id']] < 3 and (p['day'],p['meal']) not in stock]
                 else:
                     reusable=[]
                 if reusable:
                     recipe_id=min(reusable,key=lambda p:used[p['recipe_id']])['recipe_id']
                 else:
                     staggered=eligible[offset%len(eligible):]+eligible[:offset%len(eligible)]
-                    recipe_id=min(staggered,key=lambda r:used[r['id']]*4 + (not r['freezer_ok'])*2 + (r['id'] in facts['last_week']))['id']
-                chosen.append({'day':day,'meal':meal,'servings':config['people'],'recipe_id':recipe_id});used[recipe_id]+=1
-            draft,quality=candidate(c,job,w,chosen)
-            if not best or quality['score'] < best['quality']['score']:
+                    recipe_id=min(staggered,key=lambda r:used[r['id']]*4 + (not r['freezer_ok'])*2 + (r['id'] in facts['last_week']) + gaps_by_recipe[r['id']]*3)['id']
+                chosen.append({**slot,'recipe_id':recipe_id});used[recipe_id]+=1
+            try:
+                draft,quality=candidate(c,job,w,chosen)
+            except ValueError:
+                continue
+            if not best or quality_rank(quality) < quality_rank(best['quality']):
                 best={'week':draft,'quality':quality,'note':''}
+    if not best:
+        raise ValueError('Le carnet et le stock ne permettent pas de construire un menu avec ces réglages.')
     return best
+
+
+def agent_context(c, job, w):
+    facts = context(c,job)
+    try:
+        baseline = fallback(c,job,w,facts)
+    except ValueError:
+        return facts
+    facts['starting_plan'] = {
+        'slots':[{field:slot[field] for field in ('day','meal','recipe_id','servings')}
+                 for slot in baseline['week']['slots']],
+        'assessment':baseline['quality']
+    }
+    return facts
 
 
 def grocery_signature(item):
@@ -422,10 +515,7 @@ def revise(c, old, draft):
         D.put(c,'weekly',week,previous,previous['version'])
         return D.put(c,'week',week,draft,old['version'])
     config=previous['settings']
-    try:
-        quality=assess(draft,config)
-    except ValueError as error:
-        quality={'warnings':[str(error)]}
+    quality=assess(draft,config,strict=False)
     draft['groceries']=make_groceries(draft,config,(old.get('groceries') or {}).get('items',[]))
     prior_cart=old.get('cart') or {}
     required=set(cart_review.required(draft))
@@ -445,18 +535,20 @@ def revise(c, old, draft):
 def publish_plan(c, job, w):
     if job['origin']=='existing':
         draft={**w}
-        try:
-            quality=assess(draft,job['settings'])
-        except ValueError as error:
-            quality={'warnings':[str(error)]}
+        quality=assess(draft,job['settings'],strict=False)
         note=''
     else:
         proposal=job.get('proposal')
         quality=(proposal or {}).get('quality',{})
         if (not proposal or quality['no_cook_misses'] or quality['portable_misses'] or
                 len(quality['cook_days']) > job['settings']['cook_days']):
-            backup=fallback(c,job,w)
-            if not proposal or backup['quality']['score'] < quality['score']:
+            try:
+                backup=fallback(c,job,w)
+            except ValueError:
+                if not proposal:
+                    raise
+                backup=None
+            if backup and (not proposal or quality_rank(backup['quality']) < quality_rank(quality)):
                 proposal=backup
                 job['origin']='fallback'
         draft,quality,note=proposal['week'],proposal['quality'],proposal['note']
@@ -464,7 +556,7 @@ def publish_plan(c, job, w):
     draft['groceries']=make_groceries(draft,job['settings'])
     draft['cart']=None
     draft=D.put(c,'week',job['id'],draft,w['version'])
-    job.update(status='shopping',draft_version=draft['version'], quality=quality, note=note)
+    job.update(status='shopping',shopping_at=time.time(),draft_version=draft['version'], quality=quality, note=note)
     job.pop('proposal',None)
     return D.put(c,'weekly',job['id'],job,job['version'])
 
@@ -499,11 +591,12 @@ def save_products(c, job, w, matches, products, identity):
         if key not in items:
             raise ValueError('Un ingrédient sélectionné ne figure plus dans les courses.')
         product = canonical.get(match['productId'])
-        quantity = quantity_for(items[key],product,match['quantity']) if product else None
+        quantity = quantity_for(items[key],product,match['quantity']) if product and matches_form(items[key],product) else None
         if quantity is None:
             rejected.append(items[key]['name'])
             continue
-        if product.get('remainingStock') and quantity['quantity'] > product['remainingStock']:
+        stock=product.get('remainingStock')
+        if type(stock) in (int,float) and 0 < stock < quantity['quantity']:
             rejected.append(items[key]['name'])
             continue
         selection[key] = {**match, **product, **quantity}
@@ -551,7 +644,9 @@ def ready(c,job):
 def plan_prompt(job):
     return f"""Préparation automatique de la semaine du {job['id']}. Requête : {job['request_id']}.
 Utilise weekly_context avec week et request_id. Crée deux ou trois menus pratiques et différents, puis appelle propose_weekly avec week, request_id et plans.
+Tu disposes d’un starting_plan calculé par Table dans ce contexte. Garde ce qui fonctionne et propose des améliorations à partir des goûts, de la variété et du temps de cuisine. Pour remplacer un plat cuisiné en lot, pense à remplacer aussi ses repas à réchauffer.
 Les plats doivent exister dans le carnet. Tous les créneaux et portions du foyer doivent être remplis. Lis les préférences libres.
+Quand deux plats conviennent autant, privilégie celui dont les ingrédients ont été plus faciles à trouver. previous_grocery_gaps indique les ingrédients restés sans choix lors de la semaine précédente.
 Privilégie des déjeuners qui se transportent, évite de cuisiner les jours exclus, et regroupe les plats qui peuvent se congeler.
 Répète volontairement un même plat à quelques jours d’intervalle pour cuire une seule fois. Utilise les plats réellement présents au congélateur sans vider le stock.
 Vise une assiette équilibrée : légumes, une source de protéines, des féculents selon l’appétit. Alterne légumes secs, tofu, volaille et poisson selon le régime. Une entrée ou une pizza seule ne suffisent pas forcément.
@@ -563,6 +658,9 @@ def cart_prompt(job):
     return f"""Prépare la sélection Chronodrive en brouillon pour la semaine {job['id']} et la requête {job['request_id']}.
 Appelle weekly_groceries avec week et request_id. Utilise les quantités déjà agrégées et ignore les ingrédients cochés. Cherche via search_products_batch, avec des noms courts et simples en français. Réessaie les recherches vides avec un mot-clé plus simple.
 Pour un besoin égoutté, sélectionne un article dont le résultat porte le champ drained, vérifié par code-barres. Évite les plats préparés, les sauces et les mélanges aromatisés pour un ingrédient nature. Pour les légumes, privilégie le produit brut du bon type, sans sauce. Pour la viande et le poisson, respecte frais/surgelé et la découpe prévus.
+Si un ingrédient est mesuré en gousses et que edible_grams est fourni, cherche aussi un conditionnement en grammes. L’ail nature déjà coupé peut convenir à une recette cuite qui demande de hacher l’ail. Les poids de l’huile de colza et du lait de coco en conserve ont une conversion sourcée depuis les formats en millilitres.
+Pour un bouillon, utilise pack_options.prepared s’il s’agit du bouillon correspondant à reconstituer. Pour les wraps, compare pack_options.pieces. Cherche « maïs doux », « wraps de blé nature » ou « mini concombre » quand l’intitulé générique ne donne aucun résultat probant.
+Pour une pâte à pizza, choisis la pâte seule. Le poids d’un kit comprenant de la sauce ne compte pas comme poids de pâte.
 Vérifie le format, unité, poids égoutté si pertinent, et la quantité de paquets pour chaque ingrédient. Respecte les préférences. Si une correspondance est douteuse, laisse l’ingrédient sans choix. N’ajoute rien au panier.
 Enregistre le brouillon avec propose_weekly_products (week, request_id, matches). Une seule référence par ingrédient. Donne l’identifiant exact et une quantité entière de paquets. Table compare le format détaillé aux quantités et renvoie les lignes non résolues. Corrige les quelques lignes rejetées si une alternative vérifiée existe, en enregistrant seulement les nouveaux choix. Le propriétaire relira la sélection."""
 
@@ -578,7 +676,11 @@ def advance(c, job, connected, now):
             publish_plan(c,job,w)
             return None
         queued=queue_step(c,job,'planner','planning',now)
-        return (queued,'planner') if queued else None
+        if queued:
+            return {'job':queued,'role':'planner'}
+        if now-job['created']>WAIT_SECONDS:
+            publish_plan(c,job,w)
+        return None
     if job['status']=='shopping':
         if not connected or not cart_review.missing(w):
             if w.get('cart'):
@@ -588,15 +690,23 @@ def advance(c, job, connected, now):
             ready(c,job)
             return None
         queued=queue_step(c,job,'cart','matching',now)
-        return (queued,'cart') if queued else None
+        if queued:
+            return {'job':queued,'role':'cart'}
+        if now-job.get('shopping_at',job['created'])>WAIT_SECONDS:
+            job['error']='La recherche de produits reste à faire. Votre menu et vos courses sont prêts.'
+            ready(c,job)
+        return None
     role = 'planner' if job['status']=='planning' else 'cart'
     run_id=job['plan_run' if role=='planner' else 'cart_run']
     run=c.execute("SELECT status FROM runs WHERE id=?",(run_id,)).fetchone()
     if not run:
         busy=c.execute("SELECT 1 FROM runs WHERE role=? AND status IN ('submitting','running','queued','waiting_for_approval')",(role,)).fetchone()
-        return (job,role) if not busy else None
-    timed_out=now-job['phase_at']>LIMIT_SECONDS
-    if run['status'] in ACTIVE_RUN and not timed_out:
+        if not busy:
+            return {'job':job,'role':role}
+    active=bool(run and run['status'] in ACTIVE_RUN)
+    limit=90 if run and run['status']=='waiting_for_approval' else LIMIT_SECONDS
+    timed_out=now-job['phase_at']>limit
+    if (active or not run) and not timed_out:
         return None
     if role=='planner':
         publish_plan(c,job,w)
@@ -604,10 +714,10 @@ def advance(c, job, connected, now):
         if not job.get('retailer'):
             job['error']='La recherche de produits reste à faire. Votre menu et vos courses sont prêts.'
         ready(c,job)
-    return None
+    return {'cancel':run_id} if active else None
 
 
-async def tick(submit, connected, now=None):
+async def tick(submit, connected, now=None, cancel=None):
     now=now or datetime.now(ZoneInfo('UTC'))
     epoch=now.timestamp()
     work=[]
@@ -626,7 +736,12 @@ async def tick(submit, connected, now=None):
             except ValueError as e:
                 job.update(status='needs_attention',error=str(e), finished=time.time())
                 D.put(c,'weekly',key,job)
-    for job,role in work:
+    for action in work:
+        if 'cancel' in action:
+            if cancel:
+                await cancel(action['cancel'])
+            continue
+        job,role=action['job'],action['role']
         try:
             await submit(role,job['id'],plan_prompt(job) if role=='planner' else cart_prompt(job),
                          run_id=job['plan_run' if role=='planner' else 'cart_run'], automated=True)
@@ -634,10 +749,10 @@ async def tick(submit, connected, now=None):
             LOG.info('Weekly %s handoff delayed for %s',role,job['id'])
 
 
-async def loop(submit, connected, notify=None):
+async def loop(submit, connected, notify=None, cancel=None):
     while True:
         try:
-            await tick(submit,connected)
+            await tick(submit,connected,cancel=cancel)
             if notify:
                 await notify()
         except Exception:

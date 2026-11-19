@@ -266,9 +266,81 @@ async function action(a) {
     }
     if(a==='test-chrono'){let r=await api('chronodrive/test',{});toast('Connecté à Chronodrive · '+r.items.length+' produits dans votre panier');return}if(a==='codex-login'){let r=await api('codex/start',{});$('#oauth').innerHTML=`<div class="notice" style="margin-top:15px">Saisissez <strong>${esc(r.user_code)}</strong> sur <a target="_blank" rel="noreferrer" href="${esc(r.verification_url)}">Connexion OpenAI ↗</a><p id="oauth-status">En attente de connexion…</p></div>`;let timer=setInterval(async()=>{try{let s=await api('codex/status/'+r.session_id);if(s.status==='approved'){clearInterval(timer);$('#oauth-status').textContent='Connexion réussie. Sélectionnez OpenAI/Codex et installez les profils.'}else if(s.status==='error'){clearInterval(timer);$('#oauth-status').textContent=s.error||'La connexion a échoué'}}catch(e){clearInterval(timer);toast(e.message)}},5000);setTimeout(()=>clearInterval(timer),900000)}}
 function modal(html){$('#modal').innerHTML=`<div class="row between" style="margin-bottom:20px"><span class="eyebrow" style="margin:0">Table · votre cuisine</span><button id="close-modal" aria-label="Fermer">×</button></div>`+html;$('#close-modal').onclick=()=>$('#modal').close();if(!$('#modal').open)$('#modal').showModal()}
-function pickMeal(day,meal){let used=S.week.slots.filter(s=>s.day===day).map(s=>s.meal);meal=meal||['dinner','lunch','breakfast'].find(m=>!used.includes(m));modal(`<h2>${used.includes(meal)?'Remplacer ce repas :':'Choisir un repas :'} ${mealName(meal)}</h2>${stockLots().some(lot=>lot.available>0)?'<button class="small freezer-pick" id="pick-frozen">Choisir dans le congélateur</button>':''}<input id="pick-search" class="search" placeholder="Rechercher dans vos recettes…" autofocus><div id="pick-results"></div>`);let results=()=>{$('#pick-results').innerHTML=S.recipes.filter(r=>searchText(r.title+' '+r.tags.join(' ')).includes(searchText($('#pick-search').value))).map(r=>`<button style="display:block;width:100%;text-align:left;margin:7px 0" data-pick="${r.id}">${emoji(r)} &nbsp; ${esc(r.title)} <small class="muted">· pour ${r.servings}</small></button>`).join('');document.querySelectorAll('[data-pick]').forEach(e=>e.onclick=()=>safe(async()=>{let old=S.week.slots.find(s=>s.day===day&&s.meal===meal),r=S.recipes.find(r=>r.id===e.dataset.pick);await saveSlots([...S.week.slots.filter(s=>!(s.day===day&&s.meal===meal)),{day,meal,recipe_id:r.id,servings:old?.servings||r.servings}]);$('#modal').close()}))};$('#pick-search').oninput=results;
-    if ($('#pick-frozen')) $('#pick-frozen').onclick = () => selectFrozenMeal(day, meal, S.week.slots.find(slot=>slot.day===day&&slot.meal===meal)?.servings || 2);
-    results()
+function pickMeal(day, meal) {
+    const meals = S.week.slots.filter(slot => slot.day === day);
+    meal ||= ['dinner','lunch','breakfast'].find(type => !meals.some(slot => slot.meal === type));
+    const original = meals.find(slot => slot.meal === meal);
+    const key = `${day}-${meal}`;
+    const selectedWeek = week;
+    let targets = [key];
+    let revision = 0;
+
+    modal(`<h2>${original ? 'Remplacer ce repas' : 'Choisir un repas'} · ${mealName(meal)}</h2>
+        ${stockLots().some(lot => lot.available > 0) ? '<button class="small freezer-pick" id="pick-frozen">Choisir dans le congélateur</button>' : ''}
+        ${original ? '<section id="swap-suggestions" aria-live="polite"></section>' : ''}
+        <input id="pick-search" class="search" aria-label="Rechercher dans vos recettes" placeholder="Rechercher dans vos recettes…" autofocus>
+        <div id="pick-results"></div>`);
+    const search = $('#pick-search');
+    const alive = () => $('#modal').open && search === $('#pick-search') && selectedWeek === week;
+
+    const pick = id => safe(async () => {
+        const recipe = S.recipes.find(item => item.id === id);
+        if (!alive() || !recipe) return;
+        const slots = original ? S.week.slots.map(slot => targets.includes(slotKey(slot))
+            ? {day:slot.day, meal:slot.meal, recipe_id:id, servings:slot.servings} : slot)
+            : [...S.week.slots, {day, meal, recipe_id:id, servings:recipe.servings}];
+        await saveSlots(slots);
+        if (alive()) $('#modal').close();
+    });
+
+    function results() {
+        const term = searchText(search.value);
+        $('#pick-results').innerHTML = S.recipes.filter(recipe =>
+            searchText(recipe.title + ' ' + recipe.tags.join(' ')).includes(term)).map(recipe =>
+            `<button class="meal-picker-result" data-pick="${esc(recipe.id)}">${esc(recipe.title)}
+                <small class="muted">· pour ${recipe.servings}</small></button>`).join('');
+        $('#pick-results').querySelectorAll('[data-pick]').forEach(button => {
+            button.onclick = () => pick(button.dataset.pick);
+        });
+    }
+
+    async function suggest(wholeBatch = false) {
+        const request = ++revision;
+        const section = $('#swap-suggestions');
+        section.setAttribute('aria-busy','true');
+        try {
+            const query = new URLSearchParams({slot:key,whole_batch:wholeBatch});
+            const choices = await api(`week/${selectedWeek}/swaps?${query}`);
+            if (!alive() || revision !== request) return;
+            targets = choices.targets;
+            section.innerHTML = `${choices.related.length > 1 ? `<label class="swap-check">
+                <input type="checkbox" id="swap-batch" ${wholeBatch ? 'checked' : ''}> Remplacer les ${choices.related.length} repas de ce lot
+            </label>` : ''}
+            ${choices.suggestions.length ? `<h3>Adaptées à ce planning</h3><div class="swap-list">${choices.suggestions.map(option => {
+                const details = [
+                    option.added_days.length ? `Cuisine en plus ${option.added_days.map(day => weeklyDays[day]).join(', ')}` : 'Aucun jour de cuisine en plus',
+                    option.active_minutes ? `${option.active_minutes} min actives` : '',
+                    option.kcal != null ? `${Math.round(option.kcal)} kcal par portion` : ''
+                ].filter(Boolean).join(' · ');
+                return `<button data-swap-pick="${esc(option.recipe_id)}"><strong>${esc(option.title)}</strong><small>${esc(details)}</small></button>`;
+            }).join('')}</div>` : ''}`;
+            const batchToggle = $('#swap-batch');
+            if (batchToggle) batchToggle.onchange = () => {
+                targets = batchToggle.checked ? choices.related : [key];
+                suggest(batchToggle.checked);
+            };
+            section.querySelectorAll('[data-swap-pick]').forEach(button => button.onclick = () => pick(button.dataset.swapPick));
+        } catch {
+            if (alive() && revision === request) section.replaceChildren();
+        } finally {
+            if (alive() && revision === request) section.removeAttribute('aria-busy');
+        }
+    }
+
+    search.oninput = results;
+    if ($('#pick-frozen')) $('#pick-frozen').onclick = () => selectFrozenMeal(day, meal, original?.servings || 2);
+    if (original) suggest(Object.values(S.week.batch || {}).some(task => task.from_slot === key));
+    results();
 }
 function showRecipe(id, key) {
     const slot = key ? S.week.slots.find(slot => slotKey(slot) === key) : null;

@@ -34,7 +34,7 @@ function weeklyOverview() {
             [S.week.groceries?.items.filter(i => !i.checked).length ?? 0, 'ingrédients à acheter']
         ] : [];
         const selected = S.week.cart?.weekly_preview ? S.week.cart.matches.length : 0;
-        const unmatched = S.week.cart?.unmatched.length || 0;
+        const unmatched = S.week.cart?.unmatched?.length ?? S.week.groceries?.items.filter(item => !item.checked).length ?? 0;
         const summary = selected ? (unmatched ? `${selected} produit${selected===1?'':'s'} déjà choisi${selected===1?'':'s'}. ${unmatched} ingrédient${unmatched===1?'':'s'} à vérifier.`
             : 'Les courses et la sélection Chronodrive sont préparées.') : 'Les quantités des courses sont calculées.';
         return `<section class="weekly-summary" aria-labelledby="weekly-summary-title">
@@ -44,6 +44,7 @@ function weeklyOverview() {
                 `<div><dt>${title}</dt><dd>${value}</dd></div>`).join('')}</dl>` : ''}
             ${q?.active_minutes ? `<p>Environ ${q.active_minutes} min de préparation active sur la semaine.</p>` : ''}
             ${job.error ? `<p class="notice">${esc(job.error)}</p>` : ''}
+            ${!S.week.approved && unmatched > 0 && S.chronodrive_connected ? '<button class="small weekly-retry" data-action="weekly-retry-products">Relancer les produits à trouver</button>' : ''}
             ${warnings.length ? `<details class="weekly-warnings"><summary>${warnings.length === 1 ? '1 point à vérifier' : warnings.length + ' points à vérifier'}</summary>
                 <ul>${warnings.map(warning => `<li>${esc(warning)}</li>`).join('')}</ul></details>` : ''}
         </section>`;
@@ -143,9 +144,9 @@ function bindWeekly() {
 }
 
 async function weeklyAction(name) {
-    if (name === 'weekly-prepare') {
+    if (name === 'weekly-prepare' || name === 'weekly-retry-products') {
         await flowRequest(name, async () => {
-            await api(`weekly/${week}/prepare`, {version:S.week.version});
+            await api(`weekly/${week}/${name === 'weekly-prepare' ? 'prepare' : 'retry-products'}`, {version:S.week.version});
             await refresh();
         });
     }

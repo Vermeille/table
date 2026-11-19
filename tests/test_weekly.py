@@ -1,12 +1,13 @@
 import asyncio
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock
 
 import batch
 import domain as D
+import meal_swaps
 import weekly
 
 
@@ -119,6 +120,78 @@ class WeeklyPreparation(unittest.TestCase):
         self.tick()
         self.assertEqual(D.load_week(self.week),update)
         self.assertEqual(D.read('weekly',self.week)['status'],'superseded')
+
+    def test_confirmed_stock_goes_first_to_days_without_cooking(self):
+        self.configure(people=2,meals=['lunch','dinner'],days=[0,1,2],no_cook=[0],diet='vegan')
+        lot_id='curry-chou-fleur-pois-chiches'
+        batch.save_lot({'version':0,'quantity':10,'recipe_id':lot_id,'frozen_on':datetime.now(timezone.utc).date().isoformat()})
+        weekly.owner_request(self.week,0)
+        self.tick()
+        self.complete_run('plan_run','failed')
+        self.tick()
+        draft = D.load_week(self.week)
+        self.assertEqual([draft['batch'][key]['source'] for key in ('0-lunch','0-dinner')],['stock','stock'])
+        self.assertEqual(D.read('weekly',self.week)['quality']['no_cook_misses'],[])
+        self.assertEqual(D.read('freezer','main')['lots'][0]['quantity'],10)
+
+    def test_timed_out_planner_publishes_the_fallback_and_requests_exact_cancel(self):
+        self.configure(people=2,days=[0],meals=['lunch'])
+        weekly.owner_request(self.week,0)
+        self.tick()
+        job = self.complete_run('plan_run','waiting_for_approval')
+        cancel = AsyncMock()
+        asyncio.run(weekly.tick(AsyncMock(),lambda:False,now=self.now+timedelta(minutes=2),cancel=cancel))
+        cancel.assert_awaited_once_with(job['plan_run'])
+        self.tick()
+        self.assertEqual(D.read('weekly',self.week)['status'],'ready')
+        self.assertFalse(D.load_week(self.week)['approved'])
+
+    def test_swap_keeps_exact_unaffected_product_and_resets_approvals(self):
+        first_recipe, second_recipe = 'weekly-first-draft', 'weekly-alternate-draft'
+        for id,vegetable,code in ((first_recipe,'Oignons','20034'),(second_recipe,'Courgettes','20020')):
+            D.save_recipe({'id':id,'title':vegetable,'servings':2,'method':'Cuire.', 'ingredients':[
+                {'name':'Carottes','quantity':250,'unit':'g','food_id':'20009'},
+                {'name':vegetable,'quantity':150,'unit':'g','food_id':code}
+            ]})
+        def slots(recipe):
+            return [{'day':0,'meal':'dinner','servings':2,'recipe_id':recipe}]
+        draft = D.update_week(self.week,{'version':0,'slots':slots(first_recipe)})
+        weekly.owner_request(self.week,draft['version'])
+        self.tick(connected=True)
+        self.tick(connected=True)
+        job = self.complete_run('cart_run')
+        draft = D.load_week(self.week)
+        matches=[{'productId':'test-'+str(n),'grocery_id':item['id'],'quantity':1} for n,item in enumerate(draft['groceries']['items'])]
+        products=[{'productId':m['productId'],'name':'Format test','pack':{'amount':500,'unit':'g'}} for m in matches]
+        weekly.propose_products(self.week,job['request_id'],matches,products,'retailer-test')
+        self.tick(connected=True)
+        draft = D.load_week(self.week)
+        changed = D.update_week(self.week,{'version':draft['version'],'slots':slots(second_recipe)})
+        self.assertFalse(changed['approved'])
+        self.assertFalse(changed['groceries']['approved'])
+        self.assertEqual([m['productId'] for m in changed['cart']['matches']],['test-0'])
+        self.assertEqual([i['name'] for i in changed['groceries']['items'] if i['id'] in changed['cart']['unmatched']],['Courgettes'])
+        self.assertEqual(D.read('weekly',self.week)['status'],'shopping')
+
+    def test_batch_swap_proposes_portable_vegan_recipes_without_a_new_cooking_day(self):
+        config=self.configure(people=2,days=[0,2],diet='vegan',no_cook=[2],portable=[0])
+        recipe='mijote-lentilles-boulgour'
+        original=D.update_week(self.week,{'version':0,'slots':[
+            {'day':0,'meal':'lunch','recipe_id':recipe,'servings':2},
+            {'day':2,'meal':'dinner','recipe_id':recipe,'servings':2}
+        ]})
+        self.assertEqual(original['batch']['2-dinner']['from_slot'],'0-lunch')
+        single=meal_swaps.suggestions(self.week,'0-lunch')
+        together=meal_swaps.suggestions(self.week,'0-lunch',whole_batch=True)
+        self.assertEqual(single['related'],['0-lunch','2-dinner'])
+        self.assertEqual(together['targets'],single['related'])
+        self.assertEqual(len(together['suggestions']),3)
+        for option in together['suggestions']:
+            self.assertTrue(option['portable'])
+            self.assertEqual(option['added_days'],[])
+            self.assertTrue(weekly.allowed(D.read('recipe',option['recipe_id']),config))
+        self.assertTrue(all(option['added_days']==[2] for option in single['suggestions']))
+        self.assertEqual(D.load_week(self.week),original)
 
     def test_cart_preview_survives_grocery_approval_and_leaves_missing_rows_unresolved(self):
         self.configure(people=2, meals=['dinner'], days=[0])

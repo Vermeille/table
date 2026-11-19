@@ -81,12 +81,28 @@ const assert = require('node:assert/strict');
         await form.getByLabel('Dîner',{exact:true}).uncheck();
         for (const day of ['2','3','4','5','6']) await form.locator('[name=days][value="'+day+'"]').uncheck();
         await form.locator('[name=no_cook][value="1"]').check();
-        await form.getByLabel('Ingrédients toujours en réserve',{exact:true}).fill('Paprika');
+        await form.getByLabel('Ingrédients toujours en réserve',{exact:true}).fill('Huile d’olive, Huile de colza');
         await click('Enregistrer la préparation');
         await page.getByText('Préparation hebdomadaire enregistrée',{exact:true}).waitFor();
         await page.getByRole('heading',{name:'Notifications sur cet appareil',exact:true}).waitFor();
         await context.waitForEvent('serviceworker', {predicate:worker=>worker.url().includes('service-worker.js'), timeout:1000}).catch(()=>{});
         assert(context.serviceWorkers().some(worker=>worker.url().includes('/service-worker.js')));
+        await context.grantPermissions(['notifications'],{origin:base});
+        const cdp = await context.newCDPSession(page);
+        const registered = new Promise(resolve => cdp.on('ServiceWorker.workerRegistrationUpdated',({registrations}) => {
+            const registration = registrations.find(item => !item.isDeleted && item.scopeURL === base+'/');
+            if (registration) resolve(registration.registrationId);
+        }));
+        await cdp.send('ServiceWorker.enable');
+        const registrationId = await Promise.race([registered,page.waitForTimeout(2000).then(()=>null)]);
+        assert(registrationId, 'Service worker registered on the site root');
+        await cdp.send('ServiceWorker.deliverPushMessage',{origin:base,registrationId,
+            data:JSON.stringify({title:'Votre semaine est prête à relire',body:'Ouvrez Table.',week})});
+        await page.waitForFunction(async target => {
+            const registration=await navigator.serviceWorker.ready;
+            const notes=await registration.getNotifications({tag:'table-'+target});
+            return notes.some(note=>note.title==='Votre semaine est prête à relire' && note.data.week===target);
+        },week,{timeout:10000});
 
         const fresh = '2030-01-14';
         await page.goto(base+'/?week='+fresh);
@@ -94,11 +110,21 @@ const assert = require('node:assert/strict');
         await heading('Votre semaine est prête à relire');
         const solo = await state(fresh);
         assert.deepEqual(solo.week.slots.map(s=>[s.day,s.meal,s.servings]),[[0,'lunch',1],[1,'lunch',1]]);
-        assert(solo.week.groceries.items.find(item=>item.name==='Paprika')?.checked);
+        assert(solo.week.groceries.items.find(item=>item.name.startsWith('Huile '))?.checked);
         assert.deepEqual(solo.weekly.quality.no_cook_misses,[]);
         assert.equal(solo.weekly.quality.frozen_meals,1);
+        await page.locator('[data-swap="0-lunch"]').click();
+        await page.getByRole('heading',{name:'Adaptées à ce planning',exact:true}).waitFor();
+        assert(await page.locator('#swap-batch').isChecked());
+        const choice = page.locator('[data-swap-pick]').first();
+        const recipeId = await choice.getAttribute('data-swap-pick');
+        await choice.click();
+        await page.locator('#modal').waitFor({state:'hidden'});
+        const revision=await state(fresh);
+        assert.deepEqual(revision.week.slots.map(s=>s.recipe_id),[recipeId,recipeId]);
+        assert.equal(revision.week.approved,false);
         assert.deepEqual(errors,[]);
-        console.log('Brouillon, conservation des choix, quantités vérifiées, trois validations, panier de test et préférences sur mobile.');
+        console.log('Brouillon, conservation des choix, quantités vérifiées, trois validations, panier de test, préférences et notification sur mobile.');
     } finally {
         await browser.close();
     }

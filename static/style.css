@@ -259,6 +259,7 @@
 .weekly-summary h2 { margin: 0; }
 .weekly-actions { display: grid; gap: 7px; flex-shrink: 0; }
 .weekly-summary .notice { margin-top: 10px; }
+.weekly-retry { margin-top: 12px; }
 .weekly-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -343,3 +344,12 @@
     .planning-workspace .weekly-summary h2 { font-size: 27px; }
     .planning-workspace .weekly-summary { padding: 14px; }
 }
+
+.meal-picker-result { display: block; width: 100%; text-align: left; margin: 6px 0; }
+#swap-suggestions:empty { display: none; }
+#swap-suggestions { margin-bottom: 12px; }
+#swap-suggestions h3 { margin: 8px 0; }
+.swap-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.swap-list { display: grid; gap: 7px; }
+.swap-list button { text-align: left; background: #edf1e7; }
+.swap-list small { display: block; margin-top: 3px; color: #485c50; line-height: 1.4; }

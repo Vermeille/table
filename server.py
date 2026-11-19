@@ -14,6 +14,7 @@ import cart_review
 import cart_fill
 import weekly
 import notifications
+import meal_swaps
 from french import error as french_error
 ROOT=Path(__file__).parent;LOG=logging.getLogger('table');TOKENS={};SESSIONS={};PROVISION_LOCK=asyncio.Lock()
 PASSWORD=os.getenv('TABLE_PASSWORD') or os.getenv('STUDIO_PASSWORD','')
@@ -101,7 +102,7 @@ async def lifespan(app):
         app.state.provision_error=None
     except Exception as e:app.state.provision_error=french_error(str(getattr(e,'detail',e)));LOG.warning('Setup needed: %s',app.state.provision_error)
     tasks = [asyncio.create_task(poll()), asyncio.create_task(cart_fill.loop(chrono,cart_identity)),
-             asyncio.create_task(weekly.loop(submit, lambda:bool(encrypted_read('chronodrive')), notifications.flush))]
+             asyncio.create_task(weekly.loop(submit, lambda:bool(encrypted_read('chronodrive')), notifications.flush, cancel_weekly_run))]
     try:
         yield
     finally:
@@ -150,6 +151,11 @@ def state(week:str=''):
 async def weekly_settings(req:Request):return weekly.save_settings(await req.json())
 @app.post('/api/weekly/{week}/prepare')
 async def weekly_prepare(week,req:Request):return weekly.owner_request(week,(await req.json())['version'])
+@app.post('/api/weekly/{week}/retry-products')
+async def weekly_retry_products(week,req:Request):
+    if not encrypted_read('chronodrive'):
+        raise ValueError('Connectez votre compte Chronodrive avant de relancer la recherche.')
+    return weekly.retry_products(week,(await req.json())['version'])
 @app.post('/api/weekly/{week}/seen')
 def weekly_seen(week):return weekly.mark_seen(week)
 @app.get('/api/notifications/key')
@@ -192,6 +198,8 @@ def markdown(id:str):
     return FileResponse(p,media_type='text/markdown',filename=id+'.md')
 @app.post('/api/week/{week}/save')
 async def save_week(week,req:Request):return D.update_week(week,await req.json())
+@app.get('/api/week/{week}/swaps')
+def swap_suggestions(week,slot:str,whole_batch:bool=False):return meal_swaps.suggestions(week,slot,whole_batch)
 @app.post('/api/week/{week}/cart-item')
 async def cart_item(week,req:Request):
     p=await req.json();product=None
@@ -333,6 +341,20 @@ async def submit(role,week,prompt,*,run_id=None,automated=False):
         with D.db() as c:c.execute("UPDATE runs SET status='unknown',error=? WHERE id=?",('Impossible de confirmer l’envoi. Vérifiez la discussion Hermes avant de réessayer.',rid))
         raise
     return {'id':rid,'status':'running'}
+
+async def cancel_weekly_run(id):
+    from native_owner import control as native_control
+    with D.db() as c:
+        run=c.execute('SELECT role,session,remote FROM runs WHERE id=? AND automated=1',(id,)).fetchone()
+    if not run or not run['session'] or not run['remote']:
+        return
+    try:
+        async with asyncio.timeout(12):
+            remote=await hermes(run['role'],'GET','/v1/runs/'+run['remote'])
+            await native_control({'id':'table-'+run['role'],'session_id':run['session']},'stop',{},remote.get('delivery_id'))
+    except Exception as error:
+        LOG.info('Expired weekly %s run could not be interrupted (%s)',run['role'],type(error).__name__)
+
 @app.post('/api/chat')
 async def chat(req:Request):
     p=await req.json();return await submit(p['role'],D.week_id(p['week']),p['message'])
@@ -376,8 +398,8 @@ async def worker(action,req:Request):
     if action=='save_week':return D.update_week(p['week'],p,agent=True)
     if action=='weekly_context':
         with D.db() as c:
-            job,_ = weekly.ensure_phase(c,p['week'],p['request_id'],'planning')
-            return weekly.context(c,job)
+            job,w = weekly.ensure_phase(c,p['week'],p['request_id'],'planning')
+            return weekly.agent_context(c,job,w)
     if action=='propose_weekly':return weekly.propose(p['week'],p['request_id'],p['plans'])
     if action=='weekly_groceries':
         with D.db() as c:
