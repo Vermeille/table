@@ -14,6 +14,11 @@ fixture_key=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
 fixture_password=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
 
 cleanup() {
+    local status=$?
+    if (( status )); then
+        docker logs --tail 35 "$fixture_gateway" >&2 || true
+        docker logs --tail 35 "$fixture_table" >&2 || true
+    fi
     docker rm -f "$fixture_table" "$fixture_gateway" >/dev/null 2>&1 || true
     docker volume rm "$fixture_hermes_volume" "$fixture_table_volume" >/dev/null 2>&1 || true
     docker network rm "$fixture_network" >/dev/null 2>&1 || true
@@ -25,6 +30,24 @@ docker run -d --name "$fixture_gateway" --network "$fixture_network" --network-a
     -v "$fixture_hermes_volume:/opt/data" -e HERMES_GATEWAY_BOOTSTRAP_STATE=running \
     -e API_SERVER_ENABLED=true -e API_SERVER_HOST=0.0.0.0 -e API_SERVER_KEY="$fixture_key" \
     nousresearch/hermes-agent:v0.22.5 gateway run >/dev/null
+docker exec -i "$fixture_gateway" /opt/hermes/.venv/bin/python - <<'PY'
+import os
+import time
+import urllib.request
+
+request = urllib.request.Request('http://127.0.0.1:8642/api/sessions?limit=1',
+                                 headers={'Authorization':'Bearer '+os.environ['API_SERVER_KEY']})
+deadline = time.monotonic()+75
+while True:
+    try:
+        with urllib.request.urlopen(request,timeout=3) as response:
+            assert response.status == 200
+        break
+    except OSError:
+        if time.monotonic()>=deadline:
+            raise
+        time.sleep(1)
+PY
 
 start_table() {
     docker run -d --name "$fixture_table" --network "$fixture_network" --network-alias table \
